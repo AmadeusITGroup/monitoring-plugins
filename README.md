@@ -53,6 +53,10 @@ Check for mounted filesystems/mountpoints which are not expected.
 
 Check the status of the last job for a bacula client.
 
+### `check_bacula_server`
+
+Check if the last job for any client has failed on a bacula server
+
 ## License
 
 Default: MIT

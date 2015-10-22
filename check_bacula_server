@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+
+# check_bacula_server - Check if the last job for any client has failed on a bacula server
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+use autodie;
+use Nagios::Plugin;
+use DBI;
+
+my $np = Nagios::Plugin->new(
+        usage => "Usage: %s [ -v|--verbose ] "
+        . "[ -d|--dsn=<string> ]",
+        version => '1.0.0',
+        blurb => 'Check if the last job for any client has failed on a bacula server',
+);
+
+$np->add_arg(
+        spec => 'dsn|d=s',
+        help => 'Database to use',
+        default => 'dbi:Pg:dbname=bacula',
+);
+
+$np->add_arg(
+        spec => 'user|u=s',
+        help => 'User to connect as',
+        default => 'bacula',
+);
+
+$np->getopts;
+
+my $dbh = DBI->connect($np->opts->dsn, $np->opts->user) or $np->nagios_die($DBI::errstr);
+
+my $failed_jobs_statement = <<'EOF';
+WITH last_times AS (
+        SELECT MAX(endtime) as max_endtime, name FROM job GROUP BY name
+), last_runs AS (
+        SELECT * FROM job, last_times WHERE job.name = last_times.name AND job.endtime = last_times.max_endtime
+)
+SELECT * FROM last_runs WHERE jobstatus != 'T';
+EOF
+
+my $failed_jobs = $dbh->selectall_arrayref($failed_jobs_statement, { Slice => {} }) or $np->nagios_die($dbh->errstr);
+
+foreach my $f ( @$failed_jobs ) {
+        $np->add_message(CRITICAL, "$f->{name}\@$f->{endtime}");
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);
