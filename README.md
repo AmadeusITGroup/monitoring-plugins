@@ -18,6 +18,12 @@ This plugins requires some further configuration, please take a look at
 
 Requires systemd.
 
+### `check_systemd_units`
+
+Checks that no systemd units are in `failed` state.
+
+Requires systemd.
+
 
 ## License
 

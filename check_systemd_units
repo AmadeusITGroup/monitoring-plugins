@@ -1,0 +1,91 @@
+#!/usr/bin/env perl
+
+# check_systemd_units - Check that no systemd units have failed
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+use autodie;
+use Nagios::Plugin;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] "
+	. "[ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ]",
+	version => '1.0.0',
+	plugin => 'check_systemd_units',
+	blurb => 'Check failed systemd units',
+);
+
+$np->add_arg(
+	spec => 'warning|w=i',
+	help => [
+		'Exit with WARNING status if more then INTEGER units are failed',
+	],
+	default => '0',
+);
+
+$np->add_arg(
+	spec => 'critical|c=i',
+	help => [
+		'Exit with CRITICAL status if more then INTEGER units are failed',
+	],
+	default => '0',
+);
+
+$np->getopts;
+
+sub collect_output {
+	my ($program, @args) = @_;
+
+	open(my $fh, "-|", $program, @args);
+	my @content = <$fh>;
+	return @content;
+}
+
+my $warning_threshold = $np->opts->warning;
+my $critical_threshold = $np->opts->critical;
+
+my @failed_output = collect_output("systemctl", ("list-units", "--no-legend", "--failed"));
+my $total = scalar(collect_output("systemctl", ("list-units", "--no-legend")));
+
+my @failed = map { (split(' ', $_))[0] } @failed_output;
+
+$np->add_perfdata(
+	label => "failed",
+	value => scalar(@failed),
+	warning => $warning_threshold,
+	critical => $critical_threshold,
+);
+
+$np->add_perfdata(
+	label => "total",
+	value => $total,
+);
+
+my $code = $np->check_threshold(
+	check => scalar(@failed),
+	warning => $warning_threshold,
+	critical => $critical_threshold,
+);
+my $message = sprintf("%d failed: %s", scalar(@failed), join(' ', @failed));
+$np->nagios_exit($code, $message);
