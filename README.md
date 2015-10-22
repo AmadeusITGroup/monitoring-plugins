@@ -45,6 +45,10 @@ Requires the `Yaml::Syck` perl module.
 $ check_yaml -i /var/lib/puppet/state/last_run_summary.yaml -k resources -k failed -e 0
 ```
 
+### `check_mounts`
+
+Check for mounted filesystems/mountpoints which are not expected
+
 ## License
 
 Default: MIT

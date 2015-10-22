@@ -1,0 +1,118 @@
+#!/usr/bin/env perl
+
+# check_mounts - Check for mounted filesystems/mountpoints which are not expected
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+use autodie;
+
+use Nagios::Plugin;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] ",
+	version => '1.0.0',
+	plugin => 'check_mounts',
+	blurb => 'Check for mounted filesystems/mountpoints which are not expected',
+);
+
+$np->add_arg(
+	spec => 'expected-mountpoint|e=s@',
+	help => 'Which mountpoints are expected to be present',
+	default => [],
+);
+
+$np->add_arg(
+	spec => 'ignore-subtree|i=s@',
+	help => 'Which subtrees are to be ignored',
+	default => [],
+);
+
+$np->getopts;
+
+sub get_mountpoints {
+	my @result = ();
+
+	open(my $mounts_file, "<", "/proc/mounts");
+
+	while (<$mounts_file>) {
+		my ($what, $where, $fs, $opts, $dump, $pass) = split(/ /, $_);
+		push (@result, $where);
+	}
+	close($mounts_file);
+
+	return @result;
+}
+
+sub ensure_slash {
+	my $arg = shift;
+
+	if ($arg =~ /\/$/) {
+		return $arg;
+	} else {
+		return $arg . '/';
+	}
+}
+
+sub ignore_mountpoint {
+	my $ignored_subtrees = shift;
+	my $to_check = shift;
+
+	$to_check = ensure_slash($to_check);
+
+	foreach my $i (@$ignored_subtrees) {
+		if (index($to_check, ensure_slash($i)) == 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+sub mountpoint_expected {
+	my $expected = shift;
+	my $to_check = shift;
+
+	$to_check = ensure_slash($to_check);
+
+	foreach my $e (@$expected) {
+		if (ensure_slash($e) eq $to_check) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+my @mountpoints = get_mountpoints();
+my @expected_mountpoints = @{$np->opts->{'expected-mountpoint'}};
+my @ignored_subtrees = @{$np->opts->{'ignore-subtree'}};
+
+foreach my $mountpoint (@mountpoints) {
+	if (not ignore_mountpoint(\@ignored_subtrees, $mountpoint)) {
+		if (not mountpoint_expected(\@expected_mountpoints, $mountpoint)) {
+			$np->add_message(CRITICAL, $mountpoint);
+		}
+	}
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);
