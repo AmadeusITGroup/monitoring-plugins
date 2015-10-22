@@ -47,7 +47,11 @@ $ check_yaml -i /var/lib/puppet/state/last_run_summary.yaml -k resources -k fail
 
 ### `check_mounts`
 
-Check for mounted filesystems/mountpoints which are not expected
+Check for mounted filesystems/mountpoints which are not expected.
+
+### `check_bacula`
+
+Check the status of the last job for a bacula client.
 
 ## License
 

@@ -1,0 +1,108 @@
+#!/usr/bin/env perl
+
+# check_bacula - Check the status of the last job for a bacula client
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+use autodie;
+
+use Nagios::Plugin;
+use DBI;
+use DateTime;
+use DateTime::Format::Pg;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] ",
+	version => '1.0.0',
+	plugin => 'check_bacula',
+	blurb => 'Check the status of the last job for a bacula client',
+);
+
+$np->add_arg(
+	spec => 'dsn|d=s',
+	help => 'Database to use',
+	default => 'dbi:Pg:dbname=bacula',
+);
+
+$np->add_arg(
+	spec => 'user|u=s',
+	help => 'User to connect as',
+	default => 'bacula',
+);
+
+$np->add_arg(
+	spec => 'name|n=s',
+	help => 'Client to check',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'critical|c=i',
+	help => 'Time in ours for critical',
+	default => 50,
+);
+
+$np->add_arg(
+	spec => 'warning|w=i',
+	help => 'Time in ours for warning',
+	default => 30,
+);
+
+$np->getopts;
+
+my $dbh = DBI->connect($np->opts->dsn, $np->opts->user) or $np->nagios_die($DBI::errstr);
+
+my $last_run_statement = <<'EOF';
+SELECT * FROM job WHERE name = ? ORDER BY endtime DESC LIMIT 1;
+EOF
+
+my $results = $dbh->selectall_arrayref($last_run_statement, { Slice => {}}, $np->opts->name) or $np->nagios_die($dbh->errstr);
+my $num_results = scalar(@$results);
+
+if ($num_results != 1) {
+	$np->add_message(CRITICAL, "Found ${num_results} results instead of 1");
+}
+
+my $now = DateTime->now();
+
+foreach my $r ( @$results ) {
+	my $last_run = DateTime::Format::Pg->parse_datetime($r->{endtime});
+	my $age = $now->subtract_datetime_absolute($last_run);
+	my $passed_hours = $age->in_units('seconds') / 3600;
+	$np->add_message(
+		$np->check_threshold(
+			check => $passed_hours,
+			warning => $np->opts->warning,
+			critical => $np->opts->critical,
+		),
+		sprintf("Last backup is %0.2f hours old", $passed_hours),
+	);
+	$np->add_perfdata(
+		label => 'age',
+		value => $age->in_units('seconds'),
+		uom => 's',
+	);
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);
