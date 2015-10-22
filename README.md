@@ -33,6 +33,18 @@ Checks remaining space and status of zpools.
 Checks reachability of an NTP server.
 This is like the common `check_ntp` plugin but provides more performance data.
 
+### `check_yaml`
+
+Check a key to have a certain value in a yaml file.
+
+Requires the `Yaml::Syck` perl module.
+
+#### Example to test for the status of the last puppet run:
+
+```sh
+$ check_yaml -i /var/lib/puppet/state/last_run_summary.yaml -k resources -k failed -e 0
+```
+
 ## License
 
 Default: MIT

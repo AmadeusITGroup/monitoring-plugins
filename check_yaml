@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+
+# check_yaml - Check a key to have a certain value in a yaml file
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+use Nagios::Plugin;
+use YAML::Syck qw{LoadFile};
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] "
+	. "[ -i|--input=<file> ] "
+	. "[ -k|--key=<string> ] [ -e|--expect=<string> ]",
+	version => '1.0.0',
+	plugin => 'check_yaml',
+	blurb   => 'Check a key to have a certain value in a yaml file',
+);
+
+$np->add_arg(
+	spec     => 'input|i=s',
+	required => 1,
+	help     => 'The file to look at',
+);
+
+$np->add_arg(
+	spec     => 'key|k=s@',
+	required => 1,
+	help     => 'The key to search for. Specify multiple times for nested keys.',
+);
+
+$np->add_arg(
+	spec     => 'expect|e=s',
+	help     => 'The key to expect',
+	required => 1,
+);
+
+$np->getopts;
+
+my $doc;
+eval {
+	$doc = LoadFile($np->opts->input);
+};
+$np->nagios_exit(CRITICAL, "Unable to read input: $@") if $@;
+
+foreach (@{$np->opts->key}) {
+	if (ref($doc) ne "HASH") {
+		$np->nagios_exit(UNKNOWN, "Non hash element ${doc}");
+	}
+	$doc = $$doc{$_};
+};
+
+my $expected = $np->opts->expect;
+
+if ($doc eq $expected) {
+	my $path = join('->', @{$np->opts->key});
+	my $message = "Found '${expected}' at '${path}'";
+	$np->nagios_exit(OK, $message);
+} else {
+	$np->nagios_exit(CRITICAL, "Expected '${expected}', got '${doc}'");
+}
