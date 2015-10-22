@@ -10,6 +10,14 @@ Most plugins require the `Nagios::Plugin` perl module.
 
 Checks free memory on Solaris. Assumes perl from CSW.
 
+### `check_nightly_reboot`
+
+Checks if the machine is scheduled for a nightly reboot.
+This plugins requires some further configuration, please take a look at
+[its documentation](check_nightly_reboot/README.md).
+
+Requires systemd.
+
 
 ## License
 

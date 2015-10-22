@@ -1,0 +1,6 @@
+[Unit]
+Description=Reboot the machine at 04:00
+
+[Timer]
+OnCalendar=04:00:00
+Unit=reboot.target
