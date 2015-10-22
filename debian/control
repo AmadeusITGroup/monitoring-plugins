@@ -1,0 +1,17 @@
+Source: monitoring-plugins-amadeus
+Section: net
+Priority: extra
+Maintainer: Amadeus Open Source Team <opensource@amadeus.com>
+Build-Depends: debhelper (>= 9.0.0)
+Standards-Version: 3.9.4
+Homepage: https://github.com/AmadeusITGroup/monitoring-plugins-amadeus
+Vcs-Git: git://github.com/AmadeusITGroup/monitoring-plugins-amadeus.git
+Vcs-Browser: https://github.com/AmadeusITGroup/monitoring-plugins-amadeus
+
+Package: monitoring-plugins-amadeus
+Architecture: all
+Depends: ${misc:Depends}, libnagios-plugin-perl
+Suggests: libyaml-syck-perl, systemd, libdatetime-perl, libdbi-perl,
+          libdatetime-format-pg-perl, ntp
+Description: Additional monitoring plugins
+ Additional monitoring plugins by Amadeus Germany GmbH

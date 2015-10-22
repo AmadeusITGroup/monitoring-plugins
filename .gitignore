@@ -1,0 +1,6 @@
+/debian/monitoring-plugins-amadeus/
+/debian/monitoring-plugins-amadeus.substvars
+/debian/monitoring-plugins-amadeus.install
+/debian/monitoring-plugins-amadeus.debhelper.log
+/debian/files
+/debian/docs

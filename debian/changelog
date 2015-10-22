@@ -1,0 +1,6 @@
+monitoring-plugins-amadeus (1.0.0+nmu1) unstable; urgency=low
+
+  * Initial Release.
+  * Non-maintainer upload.
+
+ -- Thomas Weißschuh <thomas.weissschuh@de.amadeus.com>  Thu, 22 Oct 2015 11:47:59 +0000
