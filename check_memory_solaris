@@ -1,6 +1,6 @@
 #!/opt/csw/bin/perl
 #
-# check_memory  -  Check kstat(3) data against given tresholds
+# check_memory_solaris  -  Check kstat(3) data against given tresholds
 #
 # Copyright (C) 2007 Thomas Guyot-Sionnest <tguyot@gmail.com>
 # Copyright (C) 2015 Amadeus Germany GmbH <opensource@amadeus.com>
@@ -40,7 +40,7 @@ my $np = Nagios::Plugin->new(
     . '   [ -u <unit> ]',
   version => $VERSION,
   plugin  => $PROGNAME,
-  blurb => 'Check free(1) data against given tresholds',
+  blurb => 'Check kstat(3) data against given tresholds',
   timeout => 30,
 );
 
