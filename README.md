@@ -24,6 +24,9 @@ Checks that no systemd units are in `failed` state.
 
 Requires systemd.
 
+### `check_zfs`
+
+Checks remaining space and status of zpools.
 
 ## License
 
