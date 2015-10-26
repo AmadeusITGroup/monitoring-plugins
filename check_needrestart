@@ -34,7 +34,7 @@ my $NEEDRESTART = '/usr/sbin/needrestart';
 
 my $np = Nagios::Plugin->new(
 	usage => "Usage: %s [ -v|--verbose ] "
-	. "[ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ]",
+	. "[ --no-kernel ] [ --no-libraries ]",
 	version => '1.0.0',
 	plugin => 'check_needrestart',
 	blurb => 'Check for outdated runnings kernels and libraries/binaries',
