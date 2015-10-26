@@ -4,6 +4,8 @@
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
+# License: MIT
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -58,13 +60,13 @@ $np->add_arg(
 
 $np->add_arg(
 	spec => 'critical|c=i',
-	help => 'Time in ours for critical',
+	help => 'Time in hours (critical)',
 	default => 50,
 );
 
 $np->add_arg(
 	spec => 'warning|w=i',
-	help => 'Time in ours for warning',
+	help => 'Time in hours (warning)',
 	default => 30,
 );
 
