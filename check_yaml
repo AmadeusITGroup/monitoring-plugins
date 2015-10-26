@@ -4,6 +4,8 @@
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
+# License: MIT
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -46,12 +48,12 @@ $np->add_arg(
 $np->add_arg(
 	spec     => 'key|k=s@',
 	required => 1,
-	help     => 'The key to search for. Specify multiple times for nested keys.',
+	help     => 'The path to look into. Specify once per object level (order by depth)',
 );
 
 $np->add_arg(
 	spec     => 'expect|e=s',
-	help     => 'The key to expect',
+	help     => 'The key to search.',
 	required => 1,
 );
 
@@ -63,11 +65,16 @@ eval {
 };
 $np->nagios_exit(CRITICAL, "Unable to read input: $@") if $@;
 
-foreach (@{$np->opts->key}) {
+#
+# This loop provide a XPATH-like search.
+#    (the list of keys are provided in order of depth in the structure)
+#
+foreach my $key ( @{$np->opts->key} ) {
+
 	if (ref($doc) ne "HASH") {
 		$np->nagios_exit(UNKNOWN, "Non hash element ${doc}");
 	}
-	$doc = $$doc{$_};
+	$doc = $doc->{$key};
 };
 
 my $expected = $np->opts->expect;
