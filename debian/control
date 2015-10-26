@@ -12,6 +12,6 @@ Package: monitoring-plugins-amadeus
 Architecture: all
 Depends: ${misc:Depends}, libnagios-plugin-perl
 Suggests: libyaml-syck-perl, systemd, libdatetime-perl, libdbi-perl,
-          libdatetime-format-pg-perl, ntp
+          libdatetime-format-pg-perl, ntp, needrestart
 Description: Additional monitoring plugins
  Additional monitoring plugins by Amadeus Germany GmbH

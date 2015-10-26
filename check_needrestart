@@ -1,0 +1,138 @@
+#!/usr/bin/env perl
+
+# check_needrestart - Check for outdated runnings kernels and libraries/binaries
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# License: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+use autodie;
+use Nagios::Plugin;
+
+my $NEEDRESTART = '/usr/sbin/needrestart';
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] "
+	. "[ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ]",
+	version => '1.0.0',
+	plugin => 'check_needrestart',
+	blurb => 'Check for outdated runnings kernels and libraries/binaries',
+);
+
+$np->add_arg(
+	spec => 'kernel|k!',
+	help => 'check for obsolete kernel',
+	default => 1,
+);
+
+$np->add_arg(
+	spec => 'libraries|l!',
+	help => 'check for obsolete libraries',
+	default => 1,
+);
+
+$np->getopts;
+
+if (!($np->opts->kernel || $np->opts->libraries)) {
+	$np->nagios_exit(UNKNOWN, 'Not checking anything does not make sense');
+}
+
+my $cli = "${NEEDRESTART} -b";
+
+if ($np->opts->kernel) {
+	$cli .= " -k";
+}
+
+if ($np->opts->libraries) {
+	$cli .= " -l";
+}
+
+my $output = `$cli`;
+
+my @lines = split(/\n/, $output);
+
+sub read_line {
+	my $key = shift;
+	my $re = shift;
+
+	my $line = shift(@lines);
+
+	if (!defined($line)) {
+		return;
+	}
+
+	my ($k, $v) = split(/: /, $line);
+
+	if ($k ne $key) {
+		$np->nagios_exit(UNKNOWN, "Unexpected line '${line}', expected '${key}'");
+	}
+
+	if (defined($re)) {
+		if ($v !~ $re) {
+			$np->nagios_exit(UNKNOWN, "Failed to validate '${v}'");
+		}
+	}
+
+	return $v;
+}
+
+my $version = read_line('NEEDRESTART-VER', qr/[\d.]+/);
+
+if ($np->opts->kernel) {
+	my $kcur = read_line('NEEDRESTART-KCUR');
+	my $kexp = read_line('NEEDRESTART-KEXP');
+	my $ksta = read_line('NEEDRESTART-KSTA');
+
+	if ($kcur ne $kexp) {
+		$np->add_message(CRITICAL, "Kernel upgraded from ${kcur} to ${kexp}.");
+	}
+}
+
+if ($np->opts->libraries) {
+	my @services = ();
+
+	while (my $svc = read_line('NEEDRESTART-SVC')) {
+		unshift(@services, $svc);
+	}
+
+	if (scalar(@lines)) {
+		my $services_list = join(', ', @services);
+		$np->add_message(CRITICAL, "Outdated services: ${services_list}.");
+	}
+}
+
+my $ok_message = 'No obsolete kernels or libraries/binaries running';
+
+if (!$np->opts->kernel) {
+	$ok_message = 'No obsolete libraries/binaries running';
+}
+
+if (!$np->opts->libraries) {
+	$ok_message = 'No obsolete kernels running';
+}
+
+$np->add_message(OK, $ok_message);
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);
