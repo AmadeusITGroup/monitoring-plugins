@@ -4,6 +4,8 @@
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
+# License: MIT
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -57,18 +59,33 @@ $np->getopts;
 sub collect_output {
 	my ($program, @args) = @_;
 
-	open(my $fh, "-|", $program, @args);
-	my @content = <$fh>;
+	# Opening a command as a safe no-shell run
+	open(RUNIT, "-|", $program, @args);
+	my @content = <RUNIT>;
+    close(RUNIT);
 	return @content;
 }
 
-my $warning_threshold = $np->opts->warning;
+my $warning_threshold  = $np->opts->warning;
 my $critical_threshold = $np->opts->critical;
 
 my @failed_output = collect_output("systemctl", ("list-units", "--no-legend", "--failed"));
 my $total = scalar(collect_output("systemctl", ("list-units", "--no-legend")));
 
-my @failed = map { (split(' ', $_))[0] } @failed_output;
+# the systemctl list-units command returns 5 columns:
+#
+# <NAME>  <STATUS>  <ACTIVE>  <STATE>  <DESCRIPTION>
+#
+# Here is a sample output:
+#
+# netfilter-persistent.service       loaded active exited  netfilter persistent configuration
+# networking.service                 loaded active running LSB: Raise network interfaces.
+# ntp.service                        loaded active running Network Time Service
+# postfix.service                    loaded active running Postfix Mail Transport Agent
+# puppet.service                     loaded active running Puppet agent
+# rc-local.service                   loaded active exited  /etc/rc.local Compatibility
+
+my @failed = map { (split(/\s+/, $_))[0] } @failed_output;
 
 $np->add_perfdata(
 	label => "failed",
