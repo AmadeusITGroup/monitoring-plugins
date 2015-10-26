@@ -4,6 +4,8 @@
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
+# License: MIT
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -55,8 +57,9 @@ sub get_mountpoints {
 	open(my $mounts_file, "<", "/proc/mounts");
 
 	while (<$mounts_file>) {
-		my ($what, $where, $fs, $opts, $dump, $pass) = split(/ /, $_);
-		push (@result, $where);
+
+		my ($what, $where, $fs, $opts, $dump, $pass) = split(/\s+/, $_);
+		push (@result, ensure_slash($where) ;
 	}
 	close($mounts_file);
 
@@ -77,10 +80,8 @@ sub ignore_mountpoint {
 	my $ignored_subtrees = shift;
 	my $to_check = shift;
 
-	$to_check = ensure_slash($to_check);
-
 	foreach my $i (@$ignored_subtrees) {
-		if (index($to_check, ensure_slash($i)) == 0) {
+		if (index($to_check, $i) == 0) {
 			return 1;
 		}
 	}
@@ -92,10 +93,8 @@ sub mountpoint_expected {
 	my $expected = shift;
 	my $to_check = shift;
 
-	$to_check = ensure_slash($to_check);
-
 	foreach my $e (@$expected) {
-		if (ensure_slash($e) eq $to_check) {
+		if ($e eq $to_check) {
 			return 1;
 		}
 	}
@@ -103,12 +102,16 @@ sub mountpoint_expected {
 }
 
 my @mountpoints = get_mountpoints();
-my @expected_mountpoints = @{$np->opts->{'expected-mountpoint'}};
-my @ignored_subtrees = @{$np->opts->{'ignore-subtree'}};
+
+# Making sure all the paths considered end with a /
+my @expected_mountpoints = map{ ensure_slash($_) } @{ $np->opts->{'expected-mountpoint'} };
+my @ignored_subtrees     = map{ ensure_slash($_) } @{ $np->opts->{'ignore-subtree'} };
 
 foreach my $mountpoint (@mountpoints) {
-	if (not ignore_mountpoint(\@ignored_subtrees, $mountpoint)) {
-		if (not mountpoint_expected(\@expected_mountpoints, $mountpoint)) {
+
+	if( not ignore_mountpoint(\@ignored_subtrees, $mountpoint)
+		&& not mountpoint_expected(\@expected_mountpoints, $mountpoint) ) {
+
 			$np->add_message(CRITICAL, $mountpoint);
 		}
 	}
