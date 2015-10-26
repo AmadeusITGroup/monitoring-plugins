@@ -93,10 +93,10 @@ if ($unit eq 'M') {
 my $verbose = $np->opts->verbose;
 
 # Would better fit later but doing it here validates thresholds
-my $warning = $np->opts->warning;
+my $warning  = $np->opts->warning;
 my $critical = $np->opts->critical;
 $np->set_thresholds(
-    warning => ((defined($warning) && $warning !~ /^\d+%$/) ? $warning : undef),
+    warning  => ((defined($warning) && $warning !~ /^\d+%$/) ? $warning : undef),
     critical => ((defined($critical) && $critical !~ /^\d+%$/) ? $critical : undef),
 );
 
@@ -107,10 +107,12 @@ my ($used, $free);
 
 if (-x $KSTATCMD) {
     warn("Running: '$PAGESIZECMD'\n") if ($verbose);
-    open(RESULT, "$PAGESIZECMD |")
+
+    # Opening a command as a safe no-shell run
+    open(RESULT, '-|', $PAGESIZECMD)
         or $np->nagios_exit(CRITICAL, 'Could not determine pagesize');
 
-    my $pagesize = <RESULT>;
+    my $pagesize = readline(RESULT);
     close(RESULT);
 
     chomp($pagesize);
@@ -118,23 +120,27 @@ if (-x $KSTATCMD) {
 
     my $cmd = "$KSTATCMD -p unix::system_pages:availrmem unix::system_pages:freemem";
     warn("Running: '$cmd'\n") if ($verbose);
-    open(RESULT, "$cmd |")
+
+    # Opening a command as a safe no-shell run
+    open(RESULT, '-|', $cmd)
         or $np->nagios_exit('CRITICAL', "Could not run $KSTATCMD");
 
-
-    warn("Output from $cmd\n") if ($verbose > 1);
-    my @crap;
-
-    $used = readline(RESULT);
-    chomp($used);
-    @crap = split(/\s+/, $used, 2);
-    $used = ($crap[1] + 0) * $pagesize;
-    $free = readline(RESULT);
-    chomp($free);
-    @crap = split(/\s+/, $free, 2);
-    $free = ($crap[1] + 0) * $pagesize;
-
+    my @kstat_out = <RESULT>;
     close(RESULT);
+
+    # KStat should provide an output like this:
+    #
+    #    unix:0:system_pages:availrmem   3472830
+    #    unix:0:system_pages:freemem     3430897
+    #
+    # We extract the value out of the line
+    my @kstat_vals = map{ ( split( /\s+/, $_ ) )[1] } @kstat_out;
+
+    warn("Output from $cmd: ".join("\n", @kstat_out)."\n") if ($verbose > 1);
+
+    $used = ( $kstat_vals[0] + 0 ) * $pagesize;
+    $free = ( $kstat_vals[1] + 0 ) * $pagesize;
+
 } else {
     $np->nagios_exit(CRITICAL, 'No method to get free memory found');
 }
@@ -144,35 +150,33 @@ alarm(0);
 $np->nagios_exit('CRITICAL', "Unable to interpret $KSTATCMD output") if (!defined($free));
 
 my $total = $used + $free;
+my §percentage_use = 0;
+
 if (defined($warning) && $warning =~ /^\d+%$/) {
-  if ($warning) {
-    $warning =~ s/%//;
-    $warning = $total / 100 * $warning;
-    $warning .= ':';
-  }
+
+  $percentage_use += 1;
+  $warning =~ s/%//;
+  $warning = $total / 100 * $warning;
+
   warn("Calculated threshold (from percentage): warn=>$warning\n") if ($verbose);
 }
 
 if (defined($critical) && $critical =~ /^\d+%$/) {
-  if ($critical) {
-    $critical =~ s/%//;
-    $critical = $total / 100 * $critical;
-    $critical .= ':';
-  }
+
+  $percentage_use += 1;
+  $critical =~ s/%//;
+  $critical = $total / 100 * $critical;
+
   warn("Calculated threshold (from percentage): crit=>$critical\n") if ($verbose);
 }
 
-$np->set_thresholds(
-  warning => $warning,
-  critical => $critical,
-);
+# We make sure that we store the % values only if both have been provided as %
+if( $percentage_use == 2 ) {
 
-if (defined($critical)) {
-  $warning =~ s/:$//;
-}
-
-if (defined($warning)) {
-  $critical =~ s/:$//;
+  $np->set_thresholds(
+    warning => $warning . ':',
+    critical => $critical . ':',
+  );
 }
 
 $np->add_perfdata(
