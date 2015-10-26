@@ -1,0 +1,11 @@
+check_bacula /usr/lib/nagios/plugins
+check_bacula_server /usr/lib/nagios/plugins
+check_mounts /usr/lib/nagios/plugins
+check_nightly_reboot/check_nightly_reboot /usr/lib/nagios/plugins
+check_ntp_amadeus /usr/lib/nagios/plugins
+check_systemd_units /usr/lib/nagios/plugins
+check_yaml /usr/lib/nagios/plugins
+check_needrestart /usr/lib/nagios/plugins
+
+check_nightly_reboot/nightly-reboot.timer /lib/systemd/system
+check_nightly_reboot/README.md /usr/share/doc/monitoring-plugins-amadeus/check_nightly_reboot
