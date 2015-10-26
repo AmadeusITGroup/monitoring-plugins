@@ -4,6 +4,8 @@
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
+# License: MIT
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -55,9 +57,7 @@ $np->add_arg(
 
 $np->getopts;
 
-my @program = ('systemctl', '--quiet', 'is-active', $np->opts->unit);
-
-system(@program);
+system( 'systemctl', [ '--quiet', 'is-active', $np->opts->unit ] );
 
 if ($? == -1) {
 	$np->nagios_exit(UNKNOWN, "failed to execute: $!\n");
@@ -72,11 +72,23 @@ if ($? == -1) {
 my $status = $? >> 8;
 
 if ($status == 0) {
-	open(my $fh, "-|", 'systemctl', ('--no-legend', 'list-timers', $np->opts->unit));
-	my $line = readline($fh);
-	close($fh);
 
-	$line = substr($line, 0, 27);
+	# To stay on the safe side, we need to ensure consistent date/time formatting
+	$ENV{'LC_ALL'} = 'en_US.UTF-8';
+	$ENV{'TZ'}     = 'UTC';
+
+	# Opening a command as a safe no-shell run
+	open(RUNIT, "-|", 'systemctl', ('--no-legend', 'list-timers', $np->opts->unit));
+	my $output = readline(RUNIT);
+	close(RUNIT);
+	#
+	# One line is structures like this:
+	# NEXT LEFT LAST PASSED UNIT ACTIVATES
+	#
+	# Real-life sample:
+	# Tue 2015-10-27 00:00:00 UTC  14h left  Mon 2015-10-26 09:17:09 UTC  2min 45s ago logrotate.timer   logrotate.service
+	#
+	my $line = substr($output, 0, 27);
 
 	my $strp = DateTime::Format::Strptime->new(
 		pattern   => '%a %Y-%m-%d %H:%M:%S',
@@ -91,13 +103,17 @@ if ($status == 0) {
 		min => 0,
 	);
 	$np->nagios_exit(
-		$np->opts->critical ? CRITICAL : WARNING,
+		( $np->opts->critical ) ? CRITICAL : WARNING,
 		sprintf(
 			'This machine is scheduled for reboot tonight (%s)',
 			$line,
 		));
+
 } elsif ($status == 3) {
+
 	$np->nagios_exit(OK, 'No reboot scheduled');
+
 } else {
+
 	$np->nagios_exit(UNKNOWN, "Unknown result: $status");
 }
