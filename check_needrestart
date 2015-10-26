@@ -66,6 +66,10 @@ if ($np->opts->kernel) {
 
 if ($np->opts->libraries) {
 	$cli .= " -l";
+
+	if ($< != 0) {
+		$np->nagios_exit(UNKNOWN, 'The library checks need root privileges');
+	}
 }
 
 my $output = `$cli`;
