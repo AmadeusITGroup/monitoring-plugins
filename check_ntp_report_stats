@@ -4,6 +4,8 @@
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
+# License: MIT
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -67,11 +69,28 @@ if (defined($stderr)) {
 
 my %response;
 
+# Here is a sample output of the ntpdc -c sysinfo call:
+#
+# system peer:          ntp8.kashra-server.com
+# system peer mode:     client
+# leap indicator:       00
+# stratum:              2
+# precision:            -20
+# root distance:        0.04266 s
+# root dispersion:      0.04320 s
+# reference ID:         [62.75.254.179]
+# reference time:       d9d8a1f5.fef40b19  Mon, Oct 26 2015 12:58:29.995
+# system flags:         auth monitor ntp kernel stats
+# jitter:               0.002823 s
+# stability:            0.000 ppm
+# broadcastdelay:       0.000000 s
+# authdelay:            0.000000 s
+
 while (<$rdr>) {
   my ($k, $v) = split(':', $_, 2);
   $k =~ s/^\s+|\s+$//g ;
   $v =~ s/^\s+|\s+$//g ;
-  $v =~ s/| (s|ppm)$//g ;
+  $v =~ s/ (s|ppm)$//g ;
   $response{$k} = $v;
 }
 
