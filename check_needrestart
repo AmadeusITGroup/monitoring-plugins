@@ -120,6 +120,13 @@ if ($np->opts->libraries) {
 		unshift(@services, $svc);
 	}
 
+	$np->add_perfdata(
+		label => "outdated_services",
+		value => scalar(@services),
+		min => 0,
+		critical => undef,
+	);
+
 	if (scalar(@services)) {
 		my $services_list = join(', ', @services);
 		$np->add_message(CRITICAL, "Outdated services: ${services_list}.");
