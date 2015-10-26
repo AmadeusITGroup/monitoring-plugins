@@ -116,7 +116,7 @@ if ($np->opts->libraries) {
 		unshift(@services, $svc);
 	}
 
-	if (scalar(@lines)) {
+	if (scalar(@services)) {
 		my $services_list = join(', ', @services);
 		$np->add_message(CRITICAL, "Outdated services: ${services_list}.");
 	}
