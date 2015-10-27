@@ -31,6 +31,7 @@ use autodie;
 use Nagios::Plugin;
 
 my $NEEDRESTART = '/usr/sbin/needrestart';
+my (@args, %data);
 
 my $np = Nagios::Plugin->new(
 	usage => "Usage: %s [ -v|--verbose ] "
@@ -58,55 +59,34 @@ if (!($np->opts->kernel || $np->opts->libraries)) {
 	$np->nagios_exit(UNKNOWN, 'Not checking anything does not make sense');
 }
 
-my $cli = "${NEEDRESTART} -b";
+push @args, "-b";
+push @args, "-k"  if ($np->opts->kernel);
+push @args, "-l"  if ($np->opts->libraries);
+
+if ($np->opts->libraries && $< != 0) {
+	$np->nagios_exit(UNKNOWN, 'The library checks need root privileges');
+}
+
+# Opening a command as a safe no-shell run
+open(RUNIT, "-|", $NEEDRESTART, @args);
+
+while( <RUNIT> ) {
+    chomp; my @cut = split( /:\s+/ );
+
+    # Supporting multiple instances of the same key properly (like for the services)
+    $data{ $cut[0] } = ( $data{ $cut[0] } ) ? $data{ $cut[0] }.' '.$cut[1] : $cut[1];
+}
+close(RUNIT);
+
+
+my $version = ( $data{'NEEDRESTART-VER'} =~ /[\d.]+/ )
+            ?   $data{'NEEDRESTART-VER'}
+            :   $np->nagios_exit(UNKNOWN, "Failed to validate ($data{'NEEDRESTART-VER'})";
 
 if ($np->opts->kernel) {
-	$cli .= " -k";
-}
-
-if ($np->opts->libraries) {
-	$cli .= " -l";
-
-	if ($< != 0) {
-		$np->nagios_exit(UNKNOWN, 'The library checks need root privileges');
-	}
-}
-
-my $output = `$cli`;
-
-my @lines = split(/\n/, $output);
-
-sub read_line {
-	my $key = shift;
-	my $re = shift;
-
-	my $line = shift(@lines);
-
-	if (!defined($line)) {
-		return;
-	}
-
-	my ($k, $v) = split(/: /, $line);
-
-	if ($k ne $key) {
-		$np->nagios_exit(UNKNOWN, "Unexpected line '${line}', expected '${key}'");
-	}
-
-	if (defined($re)) {
-		if ($v !~ $re) {
-			$np->nagios_exit(UNKNOWN, "Failed to validate '${v}'");
-		}
-	}
-
-	return $v;
-}
-
-my $version = read_line('NEEDRESTART-VER', qr/[\d.]+/);
-
-if ($np->opts->kernel) {
-	my $kcur = read_line('NEEDRESTART-KCUR');
-	my $kexp = read_line('NEEDRESTART-KEXP');
-	my $ksta = read_line('NEEDRESTART-KSTA');
+	my $kcur = ( $data{'NEEDRESTART-KCUR'} ) ? $data{'NEEDRESTART-KCUR'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KCUR not found");
+	my $kexp = ( $data{'NEEDRESTART-KEXP'} ) ? $data{'NEEDRESTART-KEXP'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KEXP not found");
+	my $ksta = ( $data{'NEEDRESTART-KSTA'} ) ? $data{'NEEDRESTART-KSTA'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KSTA not found");
 
 	if ($kcur ne $kexp) {
 		$np->add_message(CRITICAL, "Kernel upgraded from ${kcur} to ${kexp}.");
@@ -114,23 +94,15 @@ if ($np->opts->kernel) {
 }
 
 if ($np->opts->libraries) {
-	my @services = ();
-
-	while (my $svc = read_line('NEEDRESTART-SVC')) {
-		unshift(@services, $svc);
-	}
 
 	$np->add_perfdata(
 		label => "outdated_services",
-		value => scalar(@services),
+		value => scalar( split( /\s+/, $data{'NEEDRESTART-SVC'} ) ),
 		min => 0,
 		critical => undef,
 	);
 
-	if (scalar(@services)) {
-		my $services_list = join(', ', @services);
-		$np->add_message(CRITICAL, "Outdated services: ${services_list}.");
-	}
+	$np->add_message(CRITICAL, "Outdated services: ".$data{'NEEDRESTART-SVC'}.".")  if($data{'NEEDRESTART-SVC'});
 }
 
 my $ok_message = 'No obsolete kernels or libraries/binaries running';
