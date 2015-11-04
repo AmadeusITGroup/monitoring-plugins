@@ -107,10 +107,10 @@ sub parse_bytes {
 ##
 
 
-# Opening a command as a safe no-shell run
-open( ZPOOL, "-|", 'zpool', ['list', '-H'] );
-my @content = <ZPOOL>;
-close( ZPOOL );
+# Opening a command as a safe no-shell run (cannot go with 4 arguments as the perl distro on Solaris does not like it)
+open( my $zpool, "-|", 'zpool list -H' );
+my @content = $zpool;
+close( $zpool );
 
 foreach my $line (@content) {
     my ($name, $size, $alloc, $free, $cap, $health, $altroot) = split("\t", $line);
