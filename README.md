@@ -4,6 +4,8 @@ A collection of monitoring plugins for Nagios/Icinga and compatible monitoring
 systems.
 Most plugins require the `Nagios::Plugin` perl module.
 
+The plugins have been written at Amadeus Germany GmbH but are fairly generic.
+
 ## Plugins
 
 ### `check_memory_solaris`
