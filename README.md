@@ -30,7 +30,7 @@ Requires systemd.
 
 Checks remaining space and status of zpools.
 
-### `check_ntp_amadeus`
+### `check_ntp_report_stats`
 
 Checks reachability of an NTP server.
 This is like the common `check_ntp` plugin but provides more performance data.
