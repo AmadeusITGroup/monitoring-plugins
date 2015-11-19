@@ -1,3 +1,9 @@
+monitoring-plugins-amadeus (1.1.0-nmu1) unstable; urgency=medium
+
+  * Make ABI compatible upgrades critical by default in check_needrestart
+
+ -- Thomas Weißschuh <thomas.weissschuh@de.amadeus.com>  Thu, 19 Nov 2015 13:01:40 +0000
+
 monitoring-plugins-amadeus (1.0.0+nmu1) unstable; urgency=low
 
   * Initial Release.
