@@ -35,8 +35,8 @@ my (@args, %data);
 
 my $np = Nagios::Plugin->new(
 	usage => "Usage: %s [ -v|--verbose ] "
-	. "[ --no-kernel ] [ --no-libraries ]",
-	version => '1.0.0',
+	. "[ --no-kernel ] [ --no-libraries ] [  --no-critical-abi ]",
+	version => '1.1.0',
 	plugin => 'check_needrestart',
 	blurb => 'Check for outdated runnings kernels and libraries/binaries',
 );
@@ -50,6 +50,12 @@ $np->add_arg(
 $np->add_arg(
 	spec => 'libraries|l!',
 	help => 'check for obsolete libraries',
+	default => 1,
+);
+
+$np->add_arg(
+	spec => 'critical-abi|a!',
+	help => 'make a abi compatible kernel upgrade critical',
 	default => 1,
 );
 
@@ -86,10 +92,23 @@ my $version = ( $data{'NEEDRESTART-VER'} =~ /[\d.]+/ )
 if ($np->opts->kernel) {
 	my $kcur = ( $data{'NEEDRESTART-KCUR'} ) ? $data{'NEEDRESTART-KCUR'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KCUR not found");
 	my $kexp = ( $data{'NEEDRESTART-KEXP'} ) ? $data{'NEEDRESTART-KEXP'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KEXP not found");
-	my $ksta = ( $data{'NEEDRESTART-KSTA'} ) ? $data{'NEEDRESTART-KSTA'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KSTA not found");
+	my $ksta = 0+ ( $data{'NEEDRESTART-KSTA'} ) ? $data{'NEEDRESTART-KSTA'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KSTA not found");
 
-	if ($kcur ne $kexp) {
+	# Constants from NeedRestart::Kernel.pm
+	if ($ksta == 0) {
+		$np->add_message(UNKNOWN, "Unknown result from kernel upgrade check.");
+	} elsif ($ksta == 1) {
+		# No upgrade
+	} elsif ($ksta == 2) {
+		my $code = WARNING;
+		if ($np->opts->get('critical-abi')) {
+			$code = CRITICAL;
+		}
+		$np->add_message($code, "ABI compatible upgrade for ${kcur}.");
+	} elsif ($ksta == 3) {
 		$np->add_message(CRITICAL, "Kernel upgraded from ${kcur} to ${kexp}.");
+	} else {
+		$np->add_message(UNKNOWN, "Unexpected result from kernel upgrade check.");
 	}
 }
 
