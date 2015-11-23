@@ -81,7 +81,7 @@ if(!open MTAB,"< /proc/self/mounts") {
 my @dirs=();
 my %mountmodes=();
 while(my $line=<MTAB>) {
-  if($line =~ /^[^ ]+ [^ ]+ nfs /) {
+  if($line =~ /^[^ ]+ [^ ]+ nfs4? /) {
     my @fields=split(/\s+/,$line);
     my $mountpoint=$fields[1];
     push(@dirs,$mountpoint);
