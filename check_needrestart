@@ -91,7 +91,7 @@ my $version = ( $data{'NEEDRESTART-VER'} =~ /[\d.]+/ )
 
 if ($np->opts->kernel) {
 	my $kcur = ( $data{'NEEDRESTART-KCUR'} ) ? $data{'NEEDRESTART-KCUR'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KCUR not found");
-	my $kexp = ( $data{'NEEDRESTART-KEXP'} ) ? $data{'NEEDRESTART-KEXP'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KEXP not found");
+	my $kexp = ( $data{'NEEDRESTART-KEXP'} ) ? $data{'NEEDRESTART-KEXP'} : undef;
 	my $ksta = 0+ ( $data{'NEEDRESTART-KSTA'} ) ? $data{'NEEDRESTART-KSTA'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KSTA not found");
 
 	# Constants from NeedRestart::Kernel.pm
