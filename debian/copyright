@@ -11,6 +11,11 @@ Copyright: 2007 Thomas Guyot-Sionnest <tguyot@gmail.com>
            2015 Thomas Weißschuh, Amadeus Germany GmbH <thomas.weissschuh@de.amadeus.com>
 License: GPL-2.0+
 
+File: check_nfsmounts_perfdata
+Copyright: 2007 Adicio, Inc.
+           2015 Thomas Weißschuh, Amadeus Germany GmbH <thomas.weissschuh@de.amadeus.com>
+License: GPL-2.0+
+
 Files: debian/*
 Copyright: 2015 Thomas Weißschuh, Amadeus Germany GmbH <thomas.weissschuh@de.amadeus.com>
 License: MIT

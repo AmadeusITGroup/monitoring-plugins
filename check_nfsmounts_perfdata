@@ -1,0 +1,169 @@
+#!/usr/bin/perl
+# vim: ts=2 sts=2 sw=2:et ai:
+#
+# Usage: check_nfsmounts [ -t nfs timeout ] [ -w ]
+# Description: determines whether there are stale NFS mounts on the host.
+# Author: Clint Byrum <clint@adicio.com>
+#
+#    Copyright 2007 Adicio, Inc.
+#    Copyright 2015 Thomas Weißschuh, Amadeus Germany GmbH
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+
+# Adapted from the original check_nfsmounts plugin to create properly formatted
+# performance data by migrating to Nagios::Plugin
+
+use strict;
+use warnings;
+
+use Nagios::Plugin;
+use Time::HiRes qw{time alarm};
+use Sys::Hostname;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] ",
+	version => '1.3-amadeus1',
+	plugin => 'check_nfsmounts',
+	blurb => 'Description: determines whether there are stale NFS mounts on the host',
+);
+
+$np->add_arg(
+	spec => 'nfs-timeout|nfstimeout|critical|c|t=f',
+	default => 15,
+	help => 'Critical NFS reaction time',
+);
+
+$np->add_arg(
+	spec => 'nfs-warning=f',
+	default => 1,
+	help => 'Warning NFS reaction time',
+);
+
+$np->add_arg(
+	spec => 'writemode|write|w',
+	default => 0,
+	help => 'Write a file to the NFS directories',
+);
+
+$np->getopts;
+
+if ($np->opts->get('nfs-timeout') <= 0) {
+	$np->nagios_exit(UNKNOWN, 'timeout must be greater than 0');
+}
+
+our $dir; # Because its a signal handler, we have to 
+sub alarm_handler {
+  $np->nagios_exit(CRITICAL, "Stale NFS mount point - ${dir}.");
+}
+
+sub bad_mount {
+  my $mountpoint=shift();
+  my $emsg=shift();
+  $np->nagios_exit(CRITICAL, "cannot operate on mount point $mountpoint. [$emsg]");
+}
+
+#my @dirs = `mount | grep " type nfs " | awk '{print \$3}'`;
+if(!open MTAB,"< /etc/mtab") {
+  $np->nagios_exit(UNKNOWN, "NFS UNKNOWN: could not open mtab.");
+}
+
+my @dirs=();
+my %mountmodes=();
+while(my $line=<MTAB>) {
+  if($line =~ /^[^ ]+ [^ ]+ nfs /) {
+    my @fields=split(/\s+/,$line);
+    my $mountpoint=$fields[1];
+    push(@dirs,$mountpoint);
+    #my %modes=split(/,/,$fields[3]);
+    my $modes = {};
+    foreach my $mode (split(/,/,$fields[3])) {
+      $modes->{$mode}=1;
+    }
+    $mountmodes{$mountpoint}=$modes;
+  }
+}
+close MTAB;
+
+$np->add_perfdata(
+  label => 'mountpoints',
+  value => scalar(@dirs),
+  min => '0',
+);
+
+if(@dirs < 1) {
+  $np->nagios_exit(OK, "no NFS mounts found.");
+}
+
+my @ages=();
+foreach $dir (@dirs) {
+  chomp $dir;
+  $SIG{ALRM} = \&alarm_handler;
+  my $start=time;
+  my $pid=fork;
+  if($pid==0) {
+    chdir $dir or &bad_mount($dir,$!);
+    if($np->opts->writemode and exists($mountmodes{$dir}->{"rw"})) {
+      my $check_filename="$dir/.nfscheck_" . hostname;
+      open X,"> $check_filename" or exit $?;
+      print X $ENV{HOSTNAME}."\n".localtime()."\n"; # XXX Full disk may fail..
+      close X or exit $?;
+    }
+    exit 0;
+  } else {
+    alarm $np->opts->get('nfs-timeout');
+    waitpid $pid,0;
+    if($?) {
+      &bad_mount($dir,$?);
+    };
+    alarm 0;
+  }
+  my $age=time()-$start;
+  if($np->opts->get('nfs-warning') > 0 and $age > $np->opts->get('nfs-warning')) {
+    $np->add_message(WARNING, "$dir took %7.5f to complete all operations ", $age);
+  }
+  push(@ages,$age);
+}
+
+my $x=0;
+my $agetot=0;
+my $maxage=0;
+foreach my $age (@ages) {
+  $agetot+=$age;
+  if($age > $maxage) {
+    $maxage=$age;
+  }
+  $x++;
+}
+my $avgage=$agetot/$x;
+
+my $perfdata=sprintf("maxtime=%9.7f;avgtime=%9.7f;mountpoints=$x",$maxage,$avgage);
+
+$np->add_perfdata(
+  label => 'maxtime',
+  uom => 's',
+  min => 0,
+  value => sprintf('%9.7f', $maxage),
+);
+
+$np->add_perfdata(
+  label => 'avgtime',
+  uom => 's',
+  min => 0,
+  value => sprintf('%9.7f', $avgage),
+);
+
+$np->add_message(OK, sprintf("$x mount points avg of %7.5f secs, max %7.5f secs.", $avgage, $maxage));
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);

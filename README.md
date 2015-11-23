@@ -17,7 +17,6 @@ Checks free memory on Solaris. Assumes perl from CSW.
 Checks if the machine is scheduled for a nightly reboot.
 This plugins requires some further configuration, please take a look at
 [its documentation](check_nightly_reboot/README.md).
-
 Requires systemd.
 
 ### `check_systemd_units`
@@ -59,7 +58,12 @@ Check the status of the last job for a bacula client.
 
 Check if the last job for any client has failed on a bacula server
 
+### `check_nfsmounts_perfdata`
+
+Ckeck whether there are stale NFS mounts on the host.
+
 ## License
 
-Default: MIT
-check_memory_solaris: GPL-2.0+
+* Default: MIT
+* check_memory_solaris: GPL-2.0+
+* check_nfsmounts_perfdata: GPL-3.0+
