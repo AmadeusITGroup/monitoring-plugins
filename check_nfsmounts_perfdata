@@ -74,7 +74,7 @@ sub bad_mount {
 }
 
 #my @dirs = `mount | grep " type nfs " | awk '{print \$3}'`;
-if(!open MTAB,"< /etc/mtab") {
+if(!open MTAB,"< /proc/self/mounts") {
   $np->nagios_exit(UNKNOWN, "NFS UNKNOWN: could not open mtab.");
 }
 
