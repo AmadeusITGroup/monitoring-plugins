@@ -59,7 +59,7 @@ sub get_mountpoints {
 	while (<$mounts_file>) {
 
 		my ($what, $where, $fs, $opts, $dump, $pass) = split(/\s+/, $_);
-		push (@result, ensure_slash($where) ;
+		push (@result, ensure_slash($where)) ;
 	}
 	close($mounts_file);
 
@@ -109,11 +109,10 @@ my @ignored_subtrees     = map{ ensure_slash($_) } @{ $np->opts->{'ignore-subtre
 
 foreach my $mountpoint (@mountpoints) {
 
-	if( not ignore_mountpoint(\@ignored_subtrees, $mountpoint)
+	if (not ignore_mountpoint(\@ignored_subtrees, $mountpoint)
 		&& not mountpoint_expected(\@expected_mountpoints, $mountpoint) ) {
 
 			$np->add_message(CRITICAL, $mountpoint);
-		}
 	}
 }
 

@@ -87,7 +87,7 @@ close(RUNIT);
 
 my $version = ( $data{'NEEDRESTART-VER'} =~ /[\d.]+/ )
             ?   $data{'NEEDRESTART-VER'}
-            :   $np->nagios_exit(UNKNOWN, "Failed to validate ($data{'NEEDRESTART-VER'})";
+            :   $np->nagios_exit(UNKNOWN, "Failed to validate ($data{'NEEDRESTART-VER'})");
 
 if ($np->opts->kernel) {
 	my $kcur = ( $data{'NEEDRESTART-KCUR'} ) ? $data{'NEEDRESTART-KCUR'} : $np->nagios_exit(UNKNOWN, "Line for NEEDRESTART-KCUR not found");
