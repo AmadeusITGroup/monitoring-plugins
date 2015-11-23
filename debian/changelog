@@ -1,3 +1,12 @@
+monitoring-plugins-amadeus (1.2.0) unstable; urgency=medium
+
+  * delete debian/watch from native package
+  * fix name of plugin in packaging
+  * fix syntax
+  * [needrestart] do not require KEXP output
+
+ -- Thomas Weißschuh <thomas.weissschuh@de.amadeus.com>  Mon, 23 Nov 2015 10:27:47 +0000
+
 monitoring-plugins-amadeus (1.1.0-nmu1) unstable; urgency=medium
 
   * Make ABI compatible upgrades critical by default in check_needrestart
