@@ -32,7 +32,7 @@ use Nagios::Plugin;
 
 my $np = Nagios::Plugin->new(
 	usage => "Usage: %s [ -v|--verbose ] ",
-	version => '1.0.0',
+	version => '1.4.0',
 	plugin => 'check_mounts',
 	blurb => 'Check for mounted filesystems/mountpoints which are not expected',
 );
