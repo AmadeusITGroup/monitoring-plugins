@@ -1,3 +1,12 @@
+monitoring-plugins-amadeus (1.4.0) unstable; urgency=medium
+
+  * packaging
+  * [check_mounts] fix logic
+  * [check_mounts] prevent duplicate messages
+  * [check_mounts] bump version
+
+ -- Thomas Weißschuh <thomas.weissschuh@de.amadeus.com>  Thu, 26 Nov 2015 13:03:23 +0000
+
 monitoring-plugins-amadeus (1.3.0) unstable; urgency=medium
 
   * [debian] add config for git dch
