@@ -109,8 +109,8 @@ my @ignored_subtrees     = map{ ensure_slash($_) } @{ $np->opts->{'ignore-subtre
 
 foreach my $mountpoint (@mountpoints) {
 
-	if (not ignore_mountpoint(\@ignored_subtrees, $mountpoint)
-		&& not mountpoint_expected(\@expected_mountpoints, $mountpoint) ) {
+	if (!ignore_mountpoint(\@ignored_subtrees, $mountpoint)
+		&& !mountpoint_expected(\@expected_mountpoints, $mountpoint) ) {
 
 			$np->add_message(CRITICAL, $mountpoint);
 	}
