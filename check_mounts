@@ -107,14 +107,19 @@ my @mountpoints = get_mountpoints();
 my @expected_mountpoints = map{ ensure_slash($_) } @{ $np->opts->{'expected-mountpoint'} };
 my @ignored_subtrees     = map{ ensure_slash($_) } @{ $np->opts->{'ignore-subtree'} };
 
+# home made set
+my %criticals;
+
 foreach my $mountpoint (@mountpoints) {
 
 	if (!ignore_mountpoint(\@ignored_subtrees, $mountpoint)
 		&& !mountpoint_expected(\@expected_mountpoints, $mountpoint) ) {
 
-			$np->add_message(CRITICAL, $mountpoint);
+		$criticals{$mountpoint} = undef;
 	}
 }
+
+map { $np->add_message(CRITICAL, $_) } keys(%criticals);
 
 my ($code, $message) = $np->check_messages();
 $np->nagios_exit($code, $message);
