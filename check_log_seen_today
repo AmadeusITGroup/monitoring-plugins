@@ -88,7 +88,7 @@ sub strptime {
 		on_error => 'undef',
 	);
 
-	my $result =  $obj->parse_datetime($string) or
+	my $result = $obj->parse_datetime($string) or
 		$np->nagios_exit(
 			UNKNOWN,
 			sprintf('Could not parse "%s" as time with "%s": %s',
@@ -110,7 +110,7 @@ my $start_time = DateTime->today()->add_duration(
 	strptime('%H:%M:%S', $np->opts->get('start-time'))->subtract_datetime(DateTime->new(year=>1)));
 my $regex = $np->opts->regex;
 
-while( defined(my $log_line = $bw->readline ) ) {
+while (defined(my $log_line = $bw->readline)) {
 	my $log_date = $strp->parse_datetime($log_line) or
 		$np->nagios_exit(
 			UNKNOWN,
