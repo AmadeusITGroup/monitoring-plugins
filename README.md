@@ -60,7 +60,11 @@ Check if the last job for any client has failed on a bacula server
 
 ### `check_nfsmounts_perfdata`
 
-Ckeck whether there are stale NFS mounts on the host.
+Check whether there are stale NFS mounts on the host.
+
+### `check_log_seen_today`
+
+Check that matching log entries have been seen today.
 
 ## License
 
