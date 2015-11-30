@@ -1,3 +1,9 @@
+monitoring-plugins-amadeus (1.5.0) unstable; urgency=medium
+
+  * [check_log_seen_today] add plugin
+
+ -- Thomas Weißschuh <thomas.weissschuh@de.amadeus.com>  Mon, 30 Nov 2015 13:14:00 +0000
+
 monitoring-plugins-amadeus (1.4.0) unstable; urgency=medium
 
   * packaging
