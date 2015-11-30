@@ -1,0 +1,146 @@
+#!/usr/bin/env perl
+
+# check_log_seen_today - Check that matching log entries have been seen today
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# License: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+use autodie;
+use Nagios::Plugin;
+use File::ReadBackwards;
+use DateTime;
+use DateTime::Format::Strptime;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s --help",
+	version => '1.5.0',
+	plugin => 'check_log_seen_today',
+	blurb => 'Check that matching log entries have been seen today',
+);
+
+$np->add_arg(
+	spec => 'logfile|l=s',
+	help => 'File to check',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'time-format|t=s',
+	help => 'strptime(3) format of the timestamp',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'count|c=i',
+	help => 'Amount of entries that are expected',
+	default => 1,
+);
+
+$np->add_arg(
+	spec => 'regex|r=s',
+	help => 'Regular expression to search for',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'start-time|s=s',
+	help => 'Start time of the search',
+	default => '00:00:00',
+);
+
+$np->getopts;
+
+my $bw = File::ReadBackwards->new($np->opts->logfile) or
+	$np->nagios_exit(
+		UNKNOWN,
+		sprintf('Could not read logfile: "%s" (%s)', $np->opts->logfile, $!));
+
+my $seen = 0;
+
+sub strptime {
+	my $pattern = shift;
+	my $string = shift;
+
+	my $obj = DateTime::Format::Strptime->new(
+		pattern => $pattern,
+		on_error => 'undef',
+	);
+
+	my $result =  $obj->parse_datetime($string) or
+		$np->nagios_exit(
+			UNKNOWN,
+			sprintf('Could not parse "%s" as time with "%s": %s',
+				$string, $obj->pattern, $obj->errmsg));
+
+	return $result;
+}
+
+my $strp = DateTime::Format::Strptime->new(
+	pattern => $np->opts->get('time-format'),
+	on_error => 'undef',
+);
+my $time_strp = DateTime::Format::Strptime->new(
+	pattern => '%H:%M:%S',
+	on_error => 'undef',
+);
+
+my $start_time = DateTime->today()->add_duration(
+	strptime('%H:%M:%S', $np->opts->get('start-time'))->subtract_datetime(DateTime->new(year=>1)));
+my $regex = $np->opts->regex;
+
+while( defined(my $log_line = $bw->readline ) ) {
+	my $log_date = $strp->parse_datetime($log_line) or
+		$np->nagios_exit(
+			UNKNOWN,
+			sprintf('Could not parse timestamp of line "%s" with "%s": %s',
+				$log_line, $strp->pattern, $strp->errmsg));
+
+	last if ($log_date < $start_time);
+
+	$seen++ if $log_line =~ /$regex/;
+}
+
+$np->add_perfdata(
+	label => 'count',
+	value => $seen,
+	critical => $np->opts->count,
+	min => 0,
+);
+
+$np->add_message(
+	OK,
+	sprintf('Found %d of %d expected entries from today matching "%s"',
+		$seen, $np->opts->count, $regex)
+);
+
+if ($seen < $np->opts->count) {
+	$np->add_message(
+		CRITICAL,
+		sprintf('Only found %d of %d expected entries from today matching "%s"',
+			$seen, $np->opts->count, $regex));
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);
