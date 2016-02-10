@@ -1,0 +1,115 @@
+#!/usr/bin/env perl
+
+# check_dkim - Check DKIM DNS records for presence, type and public key
+#
+# Copyright (c) 2015 Amadeus Germany GmbH
+#
+# License: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+use autodie;
+use Nagios::Plugin;
+
+use Mail::DKIM::PublicKey;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] "
+	. "[ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ]",
+	version => '1.0.0',
+	plugin => 'check_dkim',
+	blurb => 'Check DKIM DNS records for presence, type and public key',
+);
+
+$np->add_arg(
+	spec => 'domain|d=s',
+	help => 'domain to check',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'selector|s=s',
+	help => 'selector to check',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'pubkey|p=s',
+	help => 'pubkey to check',
+);
+
+$np->add_arg(
+	spec => 'type|t=s',
+	help => 'Expected type of the public key',
+);
+
+$np->getopts;
+
+my ($domain, $selector, $type, $pubkey) =
+	($np->opts->domain, $np->opts->selector, $np->opts->type, $np->opts->pubkey);
+
+$np->add_message(OK, sprintf('Selector "%s" on "%s" is fine.', $selector, $domain));
+
+my $pub = Mail::DKIM::PublicKey->fetch(
+	Protocol => "dns",
+	Selector => $selector,
+	Domain => $domain,
+);
+
+unless (defined($pub)) {
+	$np->nagios_exit(CRITICAL,
+		sprintf('No public key on selector "%s" on "%s" found.', $selector, $domain));
+}
+
+eval {
+	$pub->check();
+};
+if ($@) {
+	chomp (my $E = $@);
+	$np->add_message(CRITICAL, sprintf('Invalid DKIM record: "%s".', $E));
+}
+
+if (defined($type)) {
+	my $actual_type = $pub->{'TYPE'};
+	if ($actual_type ne $type) {
+		$np->add_message(CRITICAL, sprintf('Expected public key of type %s, got %s.', $type, $actual_type));
+	}
+}
+
+sub format_pubkey {
+	my @lines = shift =~ /(.{1,20})/g;
+	return '  ' . join("\n  ", @lines);
+}
+
+if (defined($pubkey)) {
+	my $actual_pubkey = $pub->{tags_by_name}->{p}->{value};
+	if ($actual_pubkey ne $pubkey) {
+		if ($np->opts->verbose) {
+			print(sprintf("Expected public key:\n%s\n\nRetrieved public key:\n%s\n",
+					format_pubkey($pubkey), format_pubkey($actual_pubkey)));
+		}
+		$np->add_message(CRITICAL, 'Public keys did not match.');
+	}
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);

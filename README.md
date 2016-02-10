@@ -66,6 +66,11 @@ Check whether there are stale NFS mounts on the host.
 
 Check that matching log entries have been seen today.
 
+### `check_dkim`
+
+Check DKIM DNS records for presence, type and public key.
+Requires the `Mail::DKIM` perl module.
+
 ## License
 
 * Default: MIT
