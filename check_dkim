@@ -68,15 +68,25 @@ my ($domain, $selector, $type, $pubkey) =
 
 $np->add_message(OK, sprintf('Selector "%s" on "%s" is fine.', $selector, $domain));
 
-my $pub = Mail::DKIM::PublicKey->fetch(
-	Protocol => "dns",
-	Selector => $selector,
-	Domain => $domain,
-);
+my $pub;
+
+eval {
+	$pub = Mail::DKIM::PublicKey->fetch(
+		Protocol => "dns",
+		Selector => $selector,
+		Domain => $domain,
+	);
+};
+if ($@) {
+	chomp (my $E = $@);
+	$np->add_message(CRITICAL, sprintf('Error while fetching DNS record: "%s".', $E));
+}
 
 unless (defined($pub)) {
-	$np->nagios_exit(CRITICAL,
+	$np->add_message(CRITICAL,
 		sprintf('No public key on selector "%s" on "%s" found.', $selector, $domain));
+	my ($code, $message) = $np->check_messages();
+	$np->nagios_exit($code, $message);
 }
 
 eval {
