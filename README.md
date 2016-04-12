@@ -71,6 +71,12 @@ Check that matching log entries have been seen today.
 Check DKIM DNS records for presence, type and public key.
 Requires the `Mail::DKIM` perl module.
 
+### `check_puppet_agent`
+
+Check that puppet agent is not disabled.
+Optionally requires the `JSON::MaybeXS` and `File::Slurp` modules, if the
+message from the lockfile is to be parsed.
+
 ## License
 
 * Default: MIT
