@@ -61,7 +61,7 @@ $np->getopts;
 
 my $html = get($np->opts->url);
 if (!defined($html)) {
-	$np->nagios_exit(UNKNOWN);
+	$np->nagios_exit(UNKNOWN, $@);
 }
 
 my $p = HTML::PullParser->new(doc => \$html,
