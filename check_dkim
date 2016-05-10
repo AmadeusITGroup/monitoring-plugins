@@ -2,7 +2,7 @@
 
 # check_dkim - Check DKIM DNS records for presence, type and public key
 #
-# Copyright (c) 2015 Amadeus Germany GmbH
+# Copyright (c) 2016 Amadeus Germany GmbH
 #
 # License: MIT
 #
@@ -33,8 +33,7 @@ use Nagios::Plugin;
 use Mail::DKIM::PublicKey;
 
 my $np = Nagios::Plugin->new(
-	usage => "Usage: %s [ -v|--verbose ] "
-	. "[ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ]",
+	usage => "Usage: %s [ -h|--help ] ",
 	version => '1.0.0',
 	plugin => 'check_dkim',
 	blurb => 'Check DKIM DNS records for presence, type and public key',
@@ -69,15 +68,25 @@ my ($domain, $selector, $type, $pubkey) =
 
 $np->add_message(OK, sprintf('Selector "%s" on "%s" is fine.', $selector, $domain));
 
-my $pub = Mail::DKIM::PublicKey->fetch(
-	Protocol => "dns",
-	Selector => $selector,
-	Domain => $domain,
-);
+my $pub;
+
+eval {
+	$pub = Mail::DKIM::PublicKey->fetch(
+		Protocol => "dns",
+		Selector => $selector,
+		Domain => $domain,
+	);
+};
+if ($@) {
+	chomp (my $E = $@);
+	$np->add_message(CRITICAL, sprintf('Error while fetching DNS record: "%s".', $E));
+}
 
 unless (defined($pub)) {
-	$np->nagios_exit(CRITICAL,
+	$np->add_message(CRITICAL,
 		sprintf('No public key on selector "%s" on "%s" found.', $selector, $domain));
+	my ($code, $message) = $np->check_messages();
+	$np->nagios_exit($code, $message);
 }
 
 eval {
