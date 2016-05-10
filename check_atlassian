@@ -73,6 +73,7 @@ my $p = HTML::PullParser->new(doc => \$html,
 my $product = 'Unknown product';
 my $days_to_expiry = undef;
 my $version = 'unknown version';
+my $build_number = undef;
 
 while (my $token = $p->get_token) {
 	if (@{$token}[0] eq 'start' && @{$token}[1] eq 'meta') {
@@ -88,12 +89,12 @@ while (my $token = $p->get_token) {
 		
 		if ($name eq 'stp-license-days-to-expiry') {
 			$days_to_expiry = $content +0;
-		}
-		if ($name eq 'stp-license-product-name') {
+		} elsif ($name eq 'stp-license-product-name') {
 			$product = $content;
-		}
-		if ($name eq 'ajs-version-number') {
+		} elsif ($name eq 'ajs-version-number') {
 			$version = $content;
+		} elsif ($name eq 'ajs-build-number') {
+			$build_number = $content +0;
 		}
 	} elsif (@{$token}[0] eq 'end' && @{$token}[1] eq 'head') {
 		last;
@@ -106,7 +107,8 @@ if (defined($days_to_expiry)) {
 		warning => $np->opts->warning . ":",
 		critical => $np->opts->critical . ":",
 	);
-	$np->add_message($code, sprintf("%s (%s) license expires in %s days", $product, $version, $days_to_expiry));
+	$np->add_message($code,
+		sprintf("%s (%s %s) license expires in %s days", $product, $version, $build_number, $days_to_expiry));
 	$np->add_perfdata(
 		label => "days_to_expiry",
 		value => $days_to_expiry,
@@ -114,7 +116,15 @@ if (defined($days_to_expiry)) {
 		critical => $np->opts->critical,
 	);
 } else {
-	$np->add_message(CRITICAL, sprintf("Could not find license expiry of %s (%s)", $product, $version));
+	$np->add_message(CRITICAL,
+		sprintf("Could not find license expiry of %s (%s %s)", $product, $version, $build_number));
+}
+
+if (defined($build_number)) {
+	$np->add_perfdata(
+		label => "build_number",
+		value => $build_number,
+	);
 }
 
 my ($code, $message) = $np->check_messages();
