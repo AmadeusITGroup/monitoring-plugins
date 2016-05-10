@@ -1,0 +1,117 @@
+#!/usr/bin/env perl
+
+# check_atlassian - Check License expiry of Atlassian tools
+#
+# Copyright (c) 2016 Amadeus Germany GmbH
+#
+# License: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+use autodie;
+use Nagios::Plugin;
+use LWP::Simple qw(get);
+use HTML::PullParser;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -h|--help ] ",
+	version => '1.0.0',
+	plugin => 'check_atlassian',
+	blurb => 'Check License expiry of Atlassian tools',
+);
+
+$np->add_arg(
+	spec => 'url|u=s',
+	help => 'URL under which the installation can be accessed',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'warning|w=i',
+	help => 'Exit with WARNING status if the license is less than INTEGER days valid',
+	default => '20',
+);
+
+$np->add_arg(
+	spec => 'critical|c=i',
+	help => 'Exit with CRITICAL status if the license is less than INTEGER days valid',
+	default => '5',
+);
+
+$np->getopts;
+
+my $html = get($np->opts->url);
+if (!defined($html)) {
+	$np->nagios_exit(UNKNOWN);
+}
+
+my $p = HTML::PullParser->new(doc => \$html,
+	start => 'event, tagname, attr',
+	end   => 'event, tagname',
+	ignore_elements => [qw(script style)],
+) || die "Can't open: $!";
+
+my $product = 'Unknown product';
+my $days_to_expiry = undef;
+
+while (my $token = $p->get_token) {
+	if (@{$token}[0] eq 'start' && @{$token}[1] eq 'meta') {
+		my $attrs = @{$token}[2];
+		my $name = %{$attrs}{'name'};
+		if (!defined($name)) {
+			next;
+		}
+		my $content = %{$attrs}{'content'};
+		if (!defined($content)) {
+			next;
+		}
+		
+		if ($name eq 'stp-license-days-to-expiry') {
+			$days_to_expiry = $content +0;
+		}
+		if ($name eq 'stp-license-product-name') {
+			$product = $content;
+		}
+	} elsif (@{$token}[0] eq 'end' && @{$token}[1] eq 'head') {
+		last;
+	}
+}
+
+if (defined($days_to_expiry)) {
+	my $code = $np->check_threshold(
+		check => $days_to_expiry,
+		warning => $np->opts->warning . ":",
+		critical => $np->opts->critical . ":",
+	);
+	$np->add_message($code, sprintf("%s license expires in %s days", $product, $days_to_expiry));
+	$np->add_perfdata(
+		label => "days_to_expiry",
+		value => $days_to_expiry,
+		warning => $np->opts->warning,
+		critical => $np->opts->critical,
+	);
+} else {
+	$np->add_message(CRITICAL, sprintf("Could not find license expiry of %s", $product));
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);

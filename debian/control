@@ -15,6 +15,6 @@ Depends: ${misc:Depends}, libnagios-plugin-perl
 Suggests: libyaml-syck-perl, systemd, libdatetime-perl, libdbi-perl,
           libdatetime-format-pg-perl, ntp, needrestart, libfile-readbackwards-perl,
           libdatetime-format-strptime-perl, libmail-dkim-perl, libfile-slurp-perl,
-          libjson-maybexs-perl
+          libjson-maybexs-perl, libhtml-parser-perl, libwww-perl
 Description: Additional monitoring plugins
  Additional monitoring plugins by Amadeus Germany GmbH
