@@ -41,7 +41,7 @@ my $np = Nagios::Plugin->new(
 $np->add_arg(
 	spec => 'warning|w=i',
 	help => [
-		'Exit with WARNING status if more then INTEGER units are failed',
+		'Exit with WARNING status if more than INTEGER units are failed',
 	],
 	default => '0',
 );
@@ -49,7 +49,7 @@ $np->add_arg(
 $np->add_arg(
 	spec => 'critical|c=i',
 	help => [
-		'Exit with CRITICAL status if more then INTEGER units are failed',
+		'Exit with CRITICAL status if more than INTEGER units are failed',
 	],
 	default => '0',
 );
