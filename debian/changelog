@@ -1,3 +1,12 @@
+monitoring-plugins-amadeus (1.7.0) unstable; urgency=medium
+
+  *  add check_atlassian
+  *  add check_puppet_agent
+  *  add check_dkim
+  *  better error reporting
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Wed, 11 May 2016 12:44:08 +0200
+
 monitoring-plugins-amadeus (1.5.1) unstable; urgency=medium
 
   * [packaging] install check_log_seen_today
