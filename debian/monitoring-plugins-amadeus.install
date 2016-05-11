@@ -6,7 +6,10 @@ check_ntp_report_stats /usr/lib/nagios/plugins
 check_systemd_units /usr/lib/nagios/plugins
 check_yaml /usr/lib/nagios/plugins
 check_needrestart /usr/lib/nagios/plugins
+check_log_seen_today /usr/lib/nagios/plugins
+check_dkim /usr/lib/nagios/plugins
 check_puppet_agent /usr/lib/nagios/plugins
+check_atlassian /usr/lib/nagios/plugins
 
 check_nightly_reboot/nightly-reboot.timer /lib/systemd/system
 check_nightly_reboot/README.md /usr/share/doc/monitoring-plugins-amadeus/check_nightly_reboot
