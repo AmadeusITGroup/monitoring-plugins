@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# check_atlassian - Check License expiry of Atlassian tools
+# check_atlassian - Check time until license expiration of Atlassian tools
 #
 # Copyright (c) 2016 Amadeus Germany GmbH
 #
@@ -36,12 +36,12 @@ my $np = Nagios::Plugin->new(
 	usage => "Usage: %s [ -h|--help ] ",
 	version => '1.0.0',
 	plugin => 'check_atlassian',
-	blurb => 'Check License expiry of Atlassian tools',
+	blurb => 'Check time until license expiration of Atlassian tools',
 );
 
 $np->add_arg(
 	spec => 'url|u=s',
-	help => 'URL under which the installation can be accessed',
+	help => 'URL of the monitored installation',
 	required => 1,
 );
 
@@ -76,13 +76,13 @@ my $version = 'unknown version';
 my $build_number = undef;
 
 while (my $token = $p->get_token) {
-	if (@{$token}[0] eq 'start' && @{$token}[1] eq 'meta') {
-		my $attrs = @{$token}[2];
-		my $name = %{$attrs}{'name'};
+	if ($token->[0] eq 'start' && $token->[1] eq 'meta') {
+		my $attrs = $token->[2];
+		my $name = $attrs->{'name'};
 		if (!defined($name)) {
 			next;
 		}
-		my $content = %{$attrs}{'content'};
+		my $content = $attrs->{'content'};
 		if (!defined($content)) {
 			next;
 		}
@@ -96,7 +96,7 @@ while (my $token = $p->get_token) {
 		} elsif ($name eq 'ajs-build-number') {
 			$build_number = $content +0;
 		}
-	} elsif (@{$token}[0] eq 'end' && @{$token}[1] eq 'head') {
+	} elsif ($token->[0] eq 'end' && $token->[1] eq 'head') {
 		last;
 	}
 }

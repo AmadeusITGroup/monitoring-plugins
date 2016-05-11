@@ -79,7 +79,7 @@ message from the lockfile is to be parsed.
 
 ### `check_atlassian`
 
-Check License expiry of Atlassian tools.
+Check time until license expiration of Atlassian tools.
 Requires the `LWP::Simple` (`libwww-perl`) and `HTML::Parser` perl modules
 
 ## License
