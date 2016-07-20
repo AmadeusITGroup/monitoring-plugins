@@ -82,6 +82,12 @@ message from the lockfile is to be parsed.
 Check time until license expiration of Atlassian tools.
 Requires the `LWP::Simple` (`libwww-perl`) and `HTML::Parser` perl modules
 
+### `check_http_health`
+
+Check the health of a HTTP endpoint with HAProxy behaviour
+(200 -> OK, 500 -> CRITICAL, rest -> UNKNOWN)
+Requires the `LWP::Simple` perl module.
+
 ## License
 
 * Default: MIT
