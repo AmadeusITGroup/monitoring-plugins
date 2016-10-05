@@ -38,8 +38,7 @@ use autodie;
 use Nagios::Plugin;
 
 my $np = Nagios::Plugin->new(
-	usage => "Usage: %s [ -v|--verbose ] "
-	. "[ -c|--critical=<threshold> ] [ -w|--warning=<threshold> ]",
+	usage => "Usage: %s [ -v|--verbose ]",
 	version => '1.0.0',
 	plugin => 'check_puppet_agent',
 	blurb => 'Check that puppet agent is not disabled',
