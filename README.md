@@ -88,6 +88,10 @@ Check the health of a HTTP endpoint with HAProxy behaviour
 (200 -> OK, 500 -> CRITICAL, rest -> UNKNOWN)
 Requires the `LWP::Simple` perl module.
 
+### `check_apparmor`
+
+Check status of AppArmor on the machine.
+
 ## License
 
 * Default: MIT

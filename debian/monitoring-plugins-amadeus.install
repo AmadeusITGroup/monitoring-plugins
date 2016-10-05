@@ -11,6 +11,7 @@ check_dkim /usr/lib/nagios/plugins
 check_puppet_agent /usr/lib/nagios/plugins
 check_atlassian /usr/lib/nagios/plugins
 check_http_health /usr/lib/nagios/plugins
+check_apparmor /usr/lib/nagios/plugins
 
 check_nightly_reboot/nightly-reboot.timer /lib/systemd/system
 check_nightly_reboot/README.md /usr/share/doc/monitoring-plugins-amadeus/check_nightly_reboot

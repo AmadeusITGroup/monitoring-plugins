@@ -1,0 +1,126 @@
+#!/usr/bin/env perl
+
+# check_apparmor - Check status of AppArmor on the machine
+#
+# Copyright (c) 2016 Amadeus Germany GmbH
+#
+# Ported from aa-status from AppArmor
+#
+# Copyright (c) 2005-2006 Novell/SUSE
+# Copyright (c) 2011 Canonical Ltd.
+#
+# License: GPL-2.0
+
+use 5.012;
+
+use strict;
+use warnings;
+use autodie;
+
+use Nagios::Plugin;
+
+my $np = Nagios::Plugin->new(
+	usage => "Usage: %s [ -v|--verbose ] ",
+	version => '1.8.0',
+	plugin => 'check_apparmor',
+	blurb => 'Check status of AppArmor on the machine',
+);
+
+$np->getopts;
+
+if (! -d "/sys/kernel/security/apparmor") {
+	$np->nagios_exit(CRITICAL, "apparmor not enabled");
+}
+
+my ($unconfined, $unconfined_with_profile, $enforcing, $complaining) = (0, 0, 0, 0);
+my ($profiles_enforcing, $profiles_complaining) = (0, 0);
+
+open(my $profiles, "/sys/kernel/security/apparmor/profiles");
+while (<$profiles>) {
+	chomp;
+	/^([^\(]+)\s+\((\w+)\)$/;
+	if ($2 eq "enforce") {
+		$profiles_enforcing++;
+	} elsif ($2 eq "complain") {
+		$profiles_complaining++;
+	} else {
+		$np->nagios_exit(UNKNOWN, "Invalid profile state $2 for $1");
+	}
+}
+close($profiles);
+
+$np->add_perfdata(
+	label => "profiles_enforcing",
+	value => $profiles_enforcing,
+);
+
+$np->add_perfdata(
+	label => "profiles_complaining",
+	value => $profiles_complaining,
+);
+
+sub read_file {
+	my $path = shift;
+
+	no autodie qw(open);
+	open(my $attrs, "<", $path) or return undef;
+	my $attr = <$attrs>;
+	chomp($attr);
+	close($attrs);
+
+	return $attr;
+}
+
+opendir(my $dh, "/proc");
+while (readdir $dh) {
+	if ($_ =~ /\D/) {
+		next;
+	}
+
+	my $attr = read_file("/proc/$_/attr/current") or next;
+	if ($attr eq "unconfined") {
+		$unconfined++;
+	} elsif ($attr =~ /^([^\(]+)\s+\((\w+)\)$/) {
+		my $mode = $2;
+
+		if ($mode eq "unconfined") {
+			$unconfined_with_profile++;
+		} elsif ($mode eq "enforce") {
+			$enforcing++;
+		} elsif ($mode eq "complain") {
+			$complaining++;
+		} else {
+			$np->nagios_exit(UNKNOWN, "Invalid profile state $mode for $_");
+		}
+	} else {
+		$np->nagios_exit(UNKNOWN, "Invalid process state $attr for $_");
+	}
+}
+closedir($dh);
+
+$np->add_perfdata(
+	label => "unconfined",
+	value => $unconfined,
+);
+
+$np->add_perfdata(
+	label => "unconfined_with_profile",
+	value => $unconfined_with_profile,
+);
+
+$np->add_perfdata(
+	label => "enforcing",
+	value => $enforcing,
+);
+
+$np->add_perfdata(
+	label => "complaining",
+	value => $complaining,
+);
+
+if ($unconfined_with_profile > 0) {
+	$np->nagios_exit(WARNING,
+		sprintf("%d processes are unconfined but have a profile defined", $unconfined_with_profile)
+	);
+}
+$np->nagios_exit(OK, "");

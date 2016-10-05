@@ -16,6 +16,12 @@ Copyright: 2007 Adicio, Inc.
            2015 Thomas Weißschuh, Amadeus Germany GmbH <thomas.weissschuh@de.amadeus.com>
 License: GPL-3.0+
 
+File: check_apparmor
+Copyright: 2005-2006 Novell/SUSE
+           2011 Canonical Ltd.
+           2016 Thomas Weißschuh, Amadeus Germany GmbH <thomas.weissschuh@de.amadeus.com>
+License: GPL-2.0
+
 Files: debian/*
 Copyright: 2015 Thomas Weißschuh, Amadeus Germany GmbH <thomas.weissschuh@de.amadeus.com>
 License: MIT
