@@ -1,3 +1,10 @@
+monitoring-plugins-amadeus (1.8.0) unstable; urgency=medium
+
+  * add check_apparmor
+  * add check_http_health
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Thu, 06 Oct 2016 10:07:24 +0200
+
 monitoring-plugins-amadeus (1.7.0) unstable; urgency=medium
 
   *  add check_atlassian
