@@ -67,6 +67,7 @@ if (!defined($html)) {
 my $p = HTML::PullParser->new(doc => \$html,
 	start => 'event, tagname, attr',
 	end   => 'event, tagname',
+	text  => 'dtext',
 	ignore_elements => [qw(script style)],
 ) || $np->nagios_exit(UNKNOWN, $!);
 
@@ -96,6 +97,20 @@ while (my $token = $p->get_token) {
 		} elsif ($name eq 'ajs-build-number') {
 			$build_number = $content +0;
 		}
+
+	# Handle Bitbucket Server
+	} elsif ($token->[0] eq 'start' && $token->[1] eq 'span') {
+		my $attrs = $token->[2];
+		if (($attrs->{'id'} // '') ne 'product-version') {
+			next;
+		}
+		$p->get_token->[0] =~ /\s*v?(\S*)\s*/;
+		$version = $1;
+
+		my $bn_attr = $attrs->{'data-system-build-number'};
+		if (defined($bn_attr)) {
+			$build_number = $bn_attr;
+		}
 	}
 }
 
@@ -119,7 +134,7 @@ if (defined($days_to_expiry)) {
 		sprintf("Could not find license expiry of %s (%s %s)", $product, $version, $build_number));
 }
 
-if (defined($build_number)) {
+if (defined($build_number) && $build_number =~ /^\d+$/) {
 	$np->add_perfdata(
 		label => "build_number",
 		value => $build_number,
