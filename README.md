@@ -92,6 +92,15 @@ Requires the `LWP::Simple` perl module.
 
 Check status of AppArmor on the machine.
 
+### `check_needrestart`
+
+Check if daemon have to be restarted after a library upgrade.
+
+Requires the [`needrestart`](https://github.com/liske/needrestart) package.
+
+Note: From `needrestart` version 2.1 and upwards you can use its native nagios
+plugin mode (pass `needrestart -p`)
+
 ## License
 
 * Default: MIT
