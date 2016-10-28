@@ -103,6 +103,10 @@ plugin mode (pass `needrestart -p`)
 
 ## License
 
+
 * Default: MIT
 * check_memory_solaris: GPL-2.0+
 * check_nfsmounts_perfdata: GPL-3.0+
+* check_apparmor: GPL-2.0
+
+For the authorative information look at the plugin source itself.
