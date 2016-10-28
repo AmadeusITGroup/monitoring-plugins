@@ -68,7 +68,7 @@ my $p = HTML::PullParser->new(doc => \$html,
 	start => 'event, tagname, attr',
 	end   => 'event, tagname',
 	ignore_elements => [qw(script style)],
-) || die "Can't open: $!";
+) || $np->nagios_exit(UNKNOWN, $!);
 
 my $product = 'Unknown product';
 my $days_to_expiry = undef;
