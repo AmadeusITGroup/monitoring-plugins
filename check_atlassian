@@ -73,7 +73,7 @@ my $p = HTML::PullParser->new(doc => \$html,
 my $product = 'Unknown product';
 my $days_to_expiry = undef;
 my $version = 'unknown version';
-my $build_number = 'unknown build number';
+my $build_number = undef;
 
 while (my $token = $p->get_token) {
 	if ($token->[0] eq 'start' && $token->[1] eq 'meta') {
@@ -106,7 +106,8 @@ if (defined($days_to_expiry)) {
 		critical => $np->opts->critical . ":",
 	);
 	$np->add_message($code,
-		sprintf("%s (%s %s) license expires in %s days", $product, $version, $build_number, $days_to_expiry));
+		sprintf("%s (%s, %s) license expires in %s days", $product, $version,
+			$build_number // 'unknown build number', $days_to_expiry));
 	$np->add_perfdata(
 		label => "days_to_expiry",
 		value => $days_to_expiry,
