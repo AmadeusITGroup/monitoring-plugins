@@ -96,8 +96,6 @@ while (my $token = $p->get_token) {
 		} elsif ($name eq 'ajs-build-number') {
 			$build_number = $content +0;
 		}
-	} elsif ($token->[0] eq 'end' && $token->[1] eq 'head') {
-		last;
 	}
 }
 
