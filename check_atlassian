@@ -73,7 +73,7 @@ my $p = HTML::PullParser->new(doc => \$html,
 my $product = 'Unknown product';
 my $days_to_expiry = undef;
 my $version = 'unknown version';
-my $build_number = undef;
+my $build_number = 'unknown build number';
 
 while (my $token = $p->get_token) {
 	if ($token->[0] eq 'start' && $token->[1] eq 'meta') {
