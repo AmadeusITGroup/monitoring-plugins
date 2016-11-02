@@ -1,3 +1,15 @@
+monitoring-plugins-amadeus (1.9.0) unstable; urgency=medium
+
+  * [check_atlassian] handle version information on bitbucket server
+  * [check_atlassian] fix handling of unknown build nunmber
+  * [check_atlassian] use nagios plugin error handling
+  * [check_atlassian] search the whole HTML document
+  * [check_atlassian] don't leave build number undefined
+  * add license note for check_apparmor
+  * add note about check_needrestart
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Wed, 02 Nov 2016 14:24:02 +0100
+
 monitoring-plugins-amadeus (1.8.0) unstable; urgency=medium
 
   * add check_apparmor
