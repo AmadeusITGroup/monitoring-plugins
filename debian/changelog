@@ -1,3 +1,9 @@
+monitoring-plugins-amadeus (1.9.1) unstable; urgency=medium
+
+  * [check_atlassian] always define build number
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Wed, 21 Dec 2016 15:54:43 +0100
+
 monitoring-plugins-amadeus (1.9.0) unstable; urgency=medium
 
   * [check_atlassian] handle version information on bitbucket server
