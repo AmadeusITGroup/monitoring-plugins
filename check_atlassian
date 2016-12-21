@@ -114,6 +114,8 @@ while (my $token = $p->get_token) {
 	}
 }
 
+$build_number = $build_number // 'unknown build number';
+
 if (defined($days_to_expiry)) {
 	my $code = $np->check_threshold(
 		check => $days_to_expiry,
@@ -122,7 +124,7 @@ if (defined($days_to_expiry)) {
 	);
 	$np->add_message($code,
 		sprintf("%s (%s, %s) license expires in %s days", $product, $version,
-			$build_number // 'unknown build number', $days_to_expiry));
+			$build_number, $days_to_expiry));
 	$np->add_perfdata(
 		label => "days_to_expiry",
 		value => $days_to_expiry,
