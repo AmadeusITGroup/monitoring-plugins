@@ -52,7 +52,7 @@ my($wtr, $rdr, $err);
 use Symbol 'gensym';
 $err = gensym;
 
-my $pid = open3($wtr, $rdr, $err, 'ntpdc -c sysinfo');
+my $pid = open3($wtr, $rdr, $err, 'ntpq -c sysinfo');
 
 waitpid($pid, 0);
 my $child_exit_status = $? >> 8;
@@ -69,22 +69,26 @@ if (defined($stderr)) {
 
 my %response;
 
-# Here is a sample output of the ntpdc -c sysinfo call:
+# Here is a sample output of the ntpq -c sysinfo call:
 #
-# system peer:          ntp8.kashra-server.com
-# system peer mode:     client
-# leap indicator:       00
-# stratum:              2
-# precision:            -20
-# root distance:        0.04266 s
-# root dispersion:      0.04320 s
-# reference ID:         [62.75.254.179]
-# reference time:       d9d8a1f5.fef40b19  Mon, Oct 26 2015 12:58:29.995
-# system flags:         auth monitor ntp kernel stats
-# jitter:               0.002823 s
-# stability:            0.000 ppm
-# broadcastdelay:       0.000000 s
-# authdelay:            0.000000 s
+# associd=0 status=0615 leap_none, sync_ntp, 1 event, clock_sync,
+# system peer:        ntp2.example.com:123
+# system peer mode:   client
+# leap indicator:     00
+# stratum:            2
+# log2 precision:     -22
+# root delay:         10.803
+# root dispersion:    23.047
+# reference ID:       193.23.186.169
+# reference time:     dd7791d4.bbe93ba9  Thu, Sep 28 2017 15:20:52.734
+# system jitter:      0.221245
+# clock jitter:       0.212
+# clock wander:       0.032
+# broadcast delay:    -50.000
+# symm. auth. delay:  0.000
+
+# consume status line
+<$rdr>;
 
 while (<$rdr>) {
   my ($k, $v) = split(':', $_, 2);
@@ -101,30 +105,59 @@ $np->add_perfdata(
 
 $np->add_perfdata(
   label => 'root_distance',
-  value => $response{'root distance'},
+  value => $response{'root delay'} / 1000,
+  uom   => 's',
+);
+
+$np->add_perfdata(
+  label => 'root_delay',
+  value => $response{'root delay'} / 1000,
   uom   => 's',
 );
 
 $np->add_perfdata(
   label => 'root_dispersion',
-  value => $response{'root dispersion'},
+  value => $response{'root dispersion'} / 1000,
   uom   => 's',
 );
 
 $np->add_perfdata(
   label => 'precision',
-  value => $response{'precision'},
+  value => $response{'log2 precision'},
+);
+
+$np->add_perfdata(
+  label => 'log2_precision',
+  value => $response{'log2 precision'},
 );
 
 $np->add_perfdata(
   label => 'jitter',
-  value => $response{'jitter'},
+  # FIXME which one is the correct jitter?
+  value => $response{'system jitter'} / 1000,
+  uom   => 's',
+);
+
+$np->add_perfdata(
+  label => 'system_jitter',
+  value => $response{'system jitter'} / 1000,
+  uom   => 's',
+);
+
+$np->add_perfdata(
+  label => 'clock_jitter',
+  value => $response{'clock jitter'} / 1000,
   uom   => 's',
 );
 
 $np->add_perfdata(
   label => 'stability',
-  value => $response{'stability'},
+  value => $response{'clock wander'},
+);
+
+$np->add_perfdata(
+  label => 'clock_wander',
+  value => $response{'clock wander'},
 );
 
 $np->nagios_exit(OK, 'Connection to NTP server successful');
