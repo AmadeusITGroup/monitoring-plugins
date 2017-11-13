@@ -1,3 +1,10 @@
+monitoring-plugins-amadeus (1.9.2) unstable; urgency=medium
+
+  * move from the removed ntpdc to the ntpq program
+  * work with different monitoring plugin modules
+
+ -- Thomas Weißschuh <thomas.weissschuh@de.amadeus.com>  Mon, 13 Nov 2017 14:50:21 +0100
+
 monitoring-plugins-amadeus (1.9.1) unstable; urgency=medium
 
   * [check_atlassian] always define build number
