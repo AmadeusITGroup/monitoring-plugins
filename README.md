@@ -2,7 +2,9 @@
 
 A collection of monitoring plugins for Nagios/Icinga and compatible monitoring
 systems.
-Most plugins require the `Nagios::Plugin` perl module.
+Most plugins require one of the `Monitoring::Pluging`, `Nagios::Plugin`,
+'Monitoring::Nagios::Plugin` perl modules and will pick the first one
+available.
 
 The plugins have been written at Amadeus Germany GmbH but are fairly generic.
 

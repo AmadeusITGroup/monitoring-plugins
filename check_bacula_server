@@ -27,10 +27,23 @@
 use strict;
 use warnings;
 use autodie;
-use Nagios::Plugin;
 use DBI;
 
-my $np = Nagios::Plugin->new(
+### START PLUGIN LOADER
+sub load_module {
+	my $module;
+	eval "require $_" and $module = $_ and last for @_;
+	$module->import();
+	return $module;
+}
+
+my $plugin_module;
+BEGIN {
+	$plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
+my $np = $plugin_module->new(
         usage => "Usage: %s [ -v|--verbose ] "
         . "[ -d|--dsn=<string> ]",
         version => '1.0.0',

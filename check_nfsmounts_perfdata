@@ -27,11 +27,24 @@
 use strict;
 use warnings;
 
-use Nagios::Plugin;
 use Time::HiRes qw{time alarm};
 use Sys::Hostname;
 
-my $np = Nagios::Plugin->new(
+### START PLUGIN LOADER
+sub load_module {
+	my $module;
+	eval "require $_" and $module = $_ and last for @_;
+	$module->import();
+	return $module;
+}
+
+my $plugin_module;
+BEGIN {
+	$plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
+my $np = $plugin_module->new(
 	usage => "Usage: %s [ -v|--verbose ] ",
 	version => '1.3-amadeus1',
 	plugin => 'check_nfsmounts_perfdata',

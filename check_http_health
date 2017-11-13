@@ -28,13 +28,26 @@ use strict;
 use warnings;
 
 use autodie;
-use Nagios::Plugin;
 use LWP::UserAgent;
 use HTTP::Request;
 
+### START PLUGIN LOADER
+sub load_module {
+	my $module;
+	eval "require $_" and $module = $_ and last for @_;
+	$module->import();
+	return $module;
+}
+
+my $plugin_module;
+BEGIN {
+	$plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
 my ($plugin, $version) = ('check_http_health', '1.0.0');
 
-my $np = Nagios::Plugin->new(
+my $np = $plugin_module->new(
 	usage => "Usage: %s [ -v|--verbose ] ",
 	version => $version,
 	plugin => $plugin,

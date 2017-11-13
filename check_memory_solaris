@@ -27,7 +27,6 @@
 use strict;
 use warnings;
 use vars qw($PROGNAME $VERSION $KSTATCMD $PAGESIZECMD $UNIT);
-use Nagios::Plugin;
 
 $PROGNAME = "check_memory_solaris";
 $VERSION = '1.0.1-amadeus';
@@ -35,7 +34,21 @@ $KSTATCMD = '/usr/bin/kstat';
 $PAGESIZECMD = '/usr/bin/pagesize';
 $UNIT = 'M';
 
-my $np = Nagios::Plugin->new(
+### START PLUGIN LOADER
+sub load_module {
+	my $module;
+	eval "require $_" and $module = $_ and last for @_;
+	$module->import();
+	return $module;
+}
+
+my $plugin_module;
+BEGIN {
+	$plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
+my $np = $plugin_module->new(
   usage => "Usage: %s [ -w <warning_threshold> ] [ -c <critical_threshold> ]\n"
     . '   [ -u <unit> ]',
   version => $VERSION,
