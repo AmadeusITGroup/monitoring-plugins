@@ -1,3 +1,9 @@
+monitoring-plugins-amadeus (1.9.3) unstable; urgency=medium
+
+  * Depend on libmonitoring-plugin-perl or libnagios-plugins-perl
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Mon, 13 Nov 2017 16:17:29 +0100
+
 monitoring-plugins-amadeus (1.9.2) unstable; urgency=medium
 
   * move from the removed ntpdc to the ntpq program

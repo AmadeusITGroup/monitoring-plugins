@@ -11,7 +11,7 @@ Vcs-Browser: https://github.com/AmadeusITGroup/monitoring-plugins-amadeus
 
 Package: monitoring-plugins-amadeus
 Architecture: all
-Depends: ${misc:Depends}, libnagios-plugin-perl
+Depends: ${misc:Depends}, libmonitoring-plugin-perl | libnagios-plugin-perl
 Suggests: libyaml-syck-perl, systemd, libdatetime-perl, libdbi-perl,
           libdatetime-format-pg-perl, ntp, needrestart, libfile-readbackwards-perl,
           libdatetime-format-strptime-perl, libmail-dkim-perl, libfile-slurp-perl,
