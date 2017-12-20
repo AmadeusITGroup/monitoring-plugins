@@ -3,3 +3,4 @@
 /debian/monitoring-plugins-amadeus.debhelper.log
 /debian/files
 /debian/docs
+/debian/debhelper-build-stamp
