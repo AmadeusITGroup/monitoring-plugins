@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# check_bacula - Check the status of the last job for a bacula client
+# check_bacula_age - Check the status of the last job for a bacula client
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
@@ -49,7 +49,7 @@ BEGIN {
 my $np = $plugin_module->new(
 	usage => "Usage: %s [ -v|--verbose ] ",
 	version => '1.0.0',
-	plugin => 'check_bacula',
+	plugin => 'check_bacula_age',
 	blurb => 'Check the status of the last job for a bacula client',
 );
 

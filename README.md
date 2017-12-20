@@ -52,7 +52,7 @@ $ check_yaml -i /var/lib/puppet/state/last_run_summary.yaml -k resources -k fail
 
 Check for mounted filesystems/mountpoints which are not expected.
 
-### `check_bacula`
+### `check_bacula_age`
 
 Check the status of the last job for a bacula client.
 
@@ -112,3 +112,9 @@ plugin mode (pass `needrestart -p`)
 * check_apparmor: GPL-2.0
 
 For the authorative information look at the plugin source itself.
+
+
+## Note
+
+`check_bacula` has been renamed to `check_bacula_age` to avoid clashes with a
+plugin shipped by Debian stretch.

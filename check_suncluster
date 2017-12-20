@@ -1,0 +1,122 @@
+#!/usr/bin/env perl
+
+# check_suncluster - Check for failed cluster resources
+#
+# Copyright (c) 2016 Amadeus Germany GmbH
+#
+# License: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+use autodie;
+use Text::Trim;
+
+### START PLUGIN LOADER
+sub load_module {
+	my $module;
+	eval "require $_" and $module = $_ and last for @_;
+	$module->import();
+	return $module;
+}
+
+my $plugin_module;
+BEGIN {
+	$plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
+my $np = $plugin_module->new(
+	usage => "Usage: %s",
+	version => '1.0.0',
+	plugin => 'check_suncluster',
+	blurb => 'Check for failed cluster resources',
+);
+
+$np->add_arg(
+	spec => 'expected-failure|e=s@',
+	help => 'Which resources are expected to be failed',
+	default => [],
+);
+
+$np->add_arg(
+	spec => 'command|c=s',
+	help => 'Path to the clrs command',
+	default => '/usr/bin/clrs',
+);
+
+$np->getopts;
+
+eval {
+	open(RUNIT, "-|", $np->opts->command, ("status"));
+};
+$np->nagios_exit(CRITICAL, "Could not execute command: $@") if $@;
+
+# consume header
+while (<RUNIT>) {
+	last if /^------/;
+};
+
+my $current_resource = undef;
+my $current_resource_is_online = 0;
+my @current_resource_error_messages = ();
+my $resource_count = 0;
+
+while (<RUNIT>) {
+	chomp;
+	my ($node_name, $state, $status_message);
+	if (/^\S/) {
+		if (
+			(!$current_resource_is_online) &&
+			defined($current_resource) &&
+			!(grep(/$current_resource/, @{$np->opts->{'expected-failure'}}))
+		) {
+			$np->add_message(CRITICAL, $current_resource);
+		}
+
+		$_ = trim;
+		($current_resource, $node_name, $state, $status_message) = split(/\s+/, $_, 4);
+		$current_resource_is_online = 0;
+		@current_resource_error_messages = ();
+		$resource_count++;
+	} elsif (/^\s*$/) {
+		next;
+	} else {
+		$_ = trim;
+		($node_name, $state, $status_message) = split(/\s+/, $_, 3);
+	}
+
+	if ($state eq 'Online') {
+		$current_resource_is_online = 1;
+	} else {
+		push(@current_resource_error_messages, [$node_name, $status_message]);
+	}
+}
+
+close(RUNIT);
+
+$np->add_perfdata(
+	label => "total",
+	value => $resource_count,
+);
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);

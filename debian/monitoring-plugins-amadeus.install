@@ -1,4 +1,4 @@
-check_bacula /usr/lib/nagios/plugins
+check_bacula_age /usr/lib/nagios/plugins
 check_bacula_server /usr/lib/nagios/plugins
 check_mounts /usr/lib/nagios/plugins
 check_nightly_reboot/check_nightly_reboot /usr/lib/nagios/plugins
