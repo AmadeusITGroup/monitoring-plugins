@@ -1,3 +1,10 @@
+monitoring-plugins-amadeus (1.9.4) unstable; urgency=medium
+
+  * rename check_bacula to check_bacula_age
+  * [check_nightly_reboot] pass a real list to system()
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Wed, 11 Apr 2018 15:55:37 +0200
+
 monitoring-plugins-amadeus (1.9.3) unstable; urgency=medium
 
   * Depend on libmonitoring-plugin-perl or libnagios-plugins-perl
