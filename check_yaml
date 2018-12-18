@@ -27,7 +27,7 @@
 use strict;
 use warnings;
 
-use YAML::Syck qw{LoadFile};
+use YAML::Syck qw{Load};
 
 ### START PLUGIN LOADER
 sub load_module {
@@ -70,11 +70,24 @@ $np->add_arg(
 	required => 1,
 );
 
+sub load_file_or_url {
+	my $loc = shift;
+	if ($loc =~ /^http:\/\// or $loc =~ /^https:\/\//) {
+		use LWP::Simple qw{get};
+		return get($loc);
+	} else {
+		use File::Slurp qw{read_file};
+		return read_file($loc);
+	}
+}
+
 $np->getopts;
 
 my $doc;
 eval {
-	$doc = LoadFile($np->opts->input);
+	my $contents = load_file_or_url($np->opts->input);
+	die "Could not load contents" if not defined $contents;
+	$doc = Load($contents);
 };
 $np->nagios_exit(CRITICAL, "Unable to read input: $@") if $@;
 

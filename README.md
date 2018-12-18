@@ -39,6 +39,9 @@ This is like the common `check_ntp` plugin but provides more performance data.
 ### `check_yaml`
 
 Check a key to have a certain value in a yaml file.
+Requires the `YAML::Syck` perl module.
+Requires `LWP::Simple` and `File::Slurp` modules if loading URLs or files
+respective.
 
 Requires the `Yaml::Syck` perl module.
 
