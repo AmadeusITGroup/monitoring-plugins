@@ -1,3 +1,9 @@
+monitoring-plugins-amadeus (1.9.5) unstable; urgency=medium
+
+  * [check_yaml] implement URL loading
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Wed, 19 Dec 2018 14:34:31 +0100
+
 monitoring-plugins-amadeus (1.9.4) unstable; urgency=medium
 
   * rename check_bacula to check_bacula_age
