@@ -1,0 +1,117 @@
+#!/usr/bin/env perl
+
+# check_yaml - Check access to an IMAP mailbox.
+#
+# Copyright (c) 2019 Amadeus Germany GmbH
+#
+# License: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+
+### START PLUGIN LOADER
+sub load_module {
+	my $module;
+	eval "require $_" and $module = $_ and last for @_;
+	$module->import();
+	return $module;
+}
+
+my $plugin_module;
+BEGIN {
+	$plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
+use Mail::IMAPClient;
+use Time::HiRes qw(gettimeofday tv_interval);
+
+my $np = $plugin_module->new(
+	usage => "Usage: %s [ -v|--verbose ] ",
+	version => '1.0.0',
+	plugin => 'check_imap_mailbox',
+	blurb   => 'Check access to an IMAP mailbox',
+);
+
+$np->add_arg(
+	spec     => 'host|h=s',
+	required => 1,
+	help     => 'host to connect to',
+);
+
+$np->add_arg(
+	spec     => 'port|p=i',
+	required => 0,
+	help     => 'port to connect to',
+);
+
+$np->add_arg(
+	spec     => 'username|u=s',
+	required => 1,
+	help     => 'username to use for login',
+);
+
+$np->add_arg(
+	spec     => 'password|w=s',
+	required => 1,
+	help     => 'password to use for login',
+);
+
+$np->add_arg(
+	spec     => 'ssl|s',
+	required => 0,
+	help     => 'whether to use SSL',
+);
+
+$np->add_arg(
+	spec     => 'folder|f',
+	default  => 'INBOX',
+	help     => 'folder to connect to',
+);
+
+$np->getopts;
+
+my $start = [gettimeofday];
+my $imap = Mail::IMAPClient->new(
+	Server => $np->opts->host,
+	Port => $np->opts->port,
+	User => $np->opts->username,
+	Password => $np->opts->password,
+	Ssl => $np->opts->ssl,
+) or $np->nagios_exit(UNKNOWN, "Can not connect to IMAP: $@");
+my $end = [gettimeofday];
+
+my $folder = $np->opts->folder;
+my $msgcount = $imap->message_count($np->opts->folder);
+defined($msgcount) or $np->nagios_exit(UNKNOWN, "Could not count messages in folder $folder: $@");
+
+$np->add_perfdata(
+	label => 'message_count',
+	value => $msgcount,
+);
+
+$np->add_perfdata(
+	label => 'connection_time',
+	value => tv_interval($start, $end),
+	uom => 's',
+);
+
+$np->nagios_exit(OK, "Connect to mailbox $folder successfull");

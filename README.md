@@ -106,6 +106,17 @@ Requires the [`needrestart`](https://github.com/liske/needrestart) package.
 Note: From `needrestart` version 2.1 and upwards you can use its native nagios
 plugin mode (pass `needrestart -p`)
 
+### `check_imap_mailbox`
+
+Check access to an IMAP mailbox.
+Requires the `Timer::HiRes` and `Mail::IMAPClient` perl modules.
+
+This plugin is similar to the `check_imap_receive` plugin, but:
+* it provides performance data
+* it is capable of loading options from files, to prevent leaking of
+  credentials via the process table
+
+
 ## License
 
 
