@@ -9,7 +9,7 @@
 # Copyright (c) 2005-2006 Novell/SUSE
 # Copyright (c) 2011 Canonical Ltd.
 #
-# License: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 
 use 5.012;
 
@@ -36,6 +36,7 @@ my $np = $plugin_module->new(
 	version => '1.8.0',
 	plugin => 'check_apparmor',
 	blurb => 'Check status of AppArmor on the machine',
+	license => 'GPL-2.0-only',
 );
 
 $np->getopts;

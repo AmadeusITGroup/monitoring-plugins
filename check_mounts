@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2015 Amadeus Germany GmbH
 #
-# License: MIT
+# SPDX-License-Identifier: MIT
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,7 @@ my $np = $plugin_module->new(
 	version => '1.4.0',
 	plugin => 'check_mounts',
 	blurb => 'Check for mounted filesystems/mountpoints which are not expected',
+	license => 'MIT',
 );
 
 $np->add_arg(

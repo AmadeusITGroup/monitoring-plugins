@@ -5,6 +5,8 @@
 # Copyright (C) 2007 Thomas Guyot-Sionnest <tguyot@gmail.com>
 # Copyright (C) 2015 Amadeus Germany GmbH <opensource@amadeus.com>
 #
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
@@ -55,6 +57,7 @@ my $np = $plugin_module->new(
   plugin  => $PROGNAME,
   blurb => 'Check kstat(3) data against given tresholds',
   timeout => 30,
+  license => 'GPL-2.0-or-later',
 );
 
 $np->add_arg(
