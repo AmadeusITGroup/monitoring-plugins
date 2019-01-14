@@ -1,3 +1,10 @@
+monitoring-plugins-amadeus (1.9.6) unstable; urgency=medium
+
+  * add check_imap_mailbox plugin
+  * use SPDX license identifiers everywhere
+
+ -- Max Vozeler <max.vozeler@amadeus.com>  Mon, 14 Jan 2019 16:24:07 +0100
+
 monitoring-plugins-amadeus (1.9.5) unstable; urgency=medium
 
   * [check_yaml] implement URL loading
