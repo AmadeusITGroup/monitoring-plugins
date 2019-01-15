@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# check_yaml - Check access to an IMAP mailbox.
+# check_imap_mailbox - Check access to an IMAP mailbox.
 #
 # Copyright (c) 2019 Amadeus Germany GmbH
 #
