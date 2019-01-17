@@ -90,6 +90,13 @@ $np->add_arg(
 
 $np->getopts;
 
+my @socketargs = [];
+
+if ($np->opts->ssl) {
+	use IO::Socket::SSL qw(SSL_VERIFY_PEER);
+	@socketargs = [SSL_verify_mode => SSL_VERIFY_PEER];
+}
+
 my $start = [gettimeofday];
 my $imap = Mail::IMAPClient->new(
 	Server => $np->opts->host,
@@ -97,6 +104,7 @@ my $imap = Mail::IMAPClient->new(
 	User => $np->opts->username,
 	Password => $np->opts->password,
 	Ssl => $np->opts->ssl,
+	Socketargs => @socketargs,
 ) or $np->nagios_exit(UNKNOWN, "Can not connect to IMAP: $@");
 my $end = [gettimeofday];
 
