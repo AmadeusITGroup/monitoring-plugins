@@ -1,0 +1,133 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use autodie;
+
+use DateTime;
+use JSON::XS;
+use MIME::Base64;
+use REST::Client;
+
+
+### START PLUGIN LOADER
+sub load_module {
+    my $module;
+    eval "require $_" and $module = $_ and last for @_;
+    $module->import();
+    return $module;
+}
+
+my $plugin_module;
+BEGIN {
+    $plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
+my $np = $plugin_module->new(
+	usage => "Usage: %s [ -v|--verbose ] ",
+	version => '1.0.0',
+	plugin => 'check_jira_plugin_license_expiration',
+	blurb => 'Check the commercial plugin(s) license(s) on a Jira instance for upcoming expiration.',
+	license => 'MIT',
+);
+
+$np->add_arg(
+	spec => 'url|u=s',
+	help => 'URL of the Jira instance to check',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'login|l=s',
+	help => 'Login to use to connect to Jira',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'pass|p=s',
+	help => 'Password to use to connect to Jira',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'critical|c=i',
+	help => 'Days before expiration (critical)',
+	default => 50,
+);
+
+$np->add_arg(
+	spec => 'warning|w=i',
+	help => 'Time in hours (warning)',
+	default => 30,
+);
+
+$np->getopts;
+
+
+#----- RELAYING PARAMS INTO NICE VARS -----#
+my $inst_url = ;
+my $crit_num_days = DateTime::Duration->new(days => $np->opts->critical);
+my $warn_num_days = DateTime::Duration->new(days => $np->opts->warning);
+#----- /RELAYING PARAMS INTO NICE VARS -----#
+
+
+
+# If it were api or agile or servicedeskapi, them JIRA::REST module would apply
+#
+# Unfortunately, we need to target plugins...
+#
+# Vaguely documented: https://ecosystem.atlassian.net/wiki/spaces/UPM/pages/6094960/UPM+REST+API
+#
+my $rest_point = '/rest/plugins/latest/';
+
+# Preparing the REST object (https://metacpan.org/pod/REST::Client)
+my $rest_cli = REST::Client->new({
+    host => $np->opts->url,
+});
+
+$rest_cli->addHeader('Content-Type', 'application/json');
+
+# This is the dirty way to do it... Maybe there is hope with HTTP:Headers and the authorization_basic() method
+#    but the REST::Client does not provide direct access to the headers... (https://metacpan.org/pod/HTTP::Headers)
+#
+$rest_cli->addHeader(Authorization => 'Basic ' . encode_base64($np->opts->login.':'.$np->opts->pass) );
+#
+# Thanks to the JIRA:REST->new() constructor for the example...
+
+$rest_cli->GET($rest_point);
+
+# Gathering some data out of the response
+my $plugins_data = JSON::XS::decode_json( $rest_cli->responseContent() );
+
+# We narrow down the list for the ones with a license (fortunately a boolean value)
+my @plugins_paid  = grep{ $_->{'usesLicensing'} } @{ $plugins_data->{'plugins'} };
+
+
+foreach my $coplug (@plugins_paid) {
+    #
+    my $license_data = $rest_cli->GET($rest_point.$coplug->{'key'}.'-key/license');
+    my $license_info = JSON::XS::decode_json( $rest_cli->responseContent() );
+
+    # Here is the list of fields that are returned by JIRA:
+    #    active | autoRenewal | contactEmail | creationDateString | crossgradeable | dataCenter | enterprise | evaluation
+    #           | licenseType | licenseTypeDescriptionKey | links | maintenanceExpired | maintenanceExpiryDate
+    #           | maintenanceExpiryDateString | maximumNumberOfUsers | nearlyExpired | organizationName | pluginKey
+    #           | purchasePastServerCutoffDate | rawLicense | renewable | subscription | supportEntitlementNumber
+    #           | typeI18nPlural | typeI18nSingular | upgradable | valid
+    #
+    # Damned JIRA epoc value in miliseconds !!!!!
+    my $current_delta = DateTime->from_epoch( epoch => $license_info->{'maintenanceExpiryDate'} / 1000) - DateTime->now();
+
+    $np->add_message(
+        $np->check_threshold(
+            check => $current_delta->in_units('days'),
+            warning => $np->opts->warning,
+            critical => $np->opts->critical,
+        ),
+        sprintf("Plugin %s is %d days away from expiring", $coplug->{'name'}, $current_delta),
+    )
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);
