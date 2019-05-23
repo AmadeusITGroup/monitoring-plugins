@@ -1,0 +1,170 @@
+#!/usr/bin/env perl
+
+# check_atlassian_plugins - Check the commercial plugin(s) license(s) on an instance for upcoming expiration
+#                           (Tested with Bitbucket, Confluence and Jira)
+#
+# Copyright (c) 2019 Amadeus North America Inc.
+#
+# SPDX-License-Identifier: MIT
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use strict;
+use warnings;
+use autodie;
+
+use Date::Calc;
+use JSON::XS;
+use LWP::UserAgent;
+use MIME::Base64;
+
+
+### START PLUGIN LOADER
+sub load_module {
+    my $module;
+    eval "require $_" and $module = $_ and last for @_;
+    $module->import();
+    return $module;
+}
+
+my $plugin_module;
+BEGIN {
+    $plugin_module = load_module('Monitoring::Plugin', 'Nagios::Plugin', 'Nagios::Monitoring::Plugin');
+}
+### END PLUGIN LOADER
+
+my $np = $plugin_module->new(
+	usage => "Usage: %s [ -v|--verbose ] ",
+	version => '1.0.0',
+	plugin => 'check_atlassian_plugins',
+	blurb => 'Check the commercial plugin(s) license(s) on an instance for upcoming expiration',
+	license => 'MIT',
+);
+
+$np->add_arg(
+	spec => 'url|u=s',
+	help => 'URL of the instance to check (no trailing /)',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'login|l=s',
+	help => 'Login to use to connect to the instance',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'pass|p=s',
+	help => 'Password to use to connect to the instance',
+	required => 1,
+);
+
+$np->add_arg(
+	spec => 'critical|c=i',
+	help => 'Exit with CRITICAL status if the license is less than INTEGER days valid',
+	default => 30,
+);
+
+$np->add_arg(
+	spec => 'warning|w=i',
+	help => 'Exit with WARNING status if the license is less than INTEGER days valid',
+	default => 60,
+);
+
+$np->getopts;
+
+
+
+# Vaguely documented in: https://ecosystem.atlassian.net/wiki/spaces/UPM/pages/6094960/UPM+REST+API
+my $base_url   = $np->opts->url;
+my $rest_point = $base_url.'/rest/plugins/latest/';
+
+
+my $rest_cli = LWP::UserAgent->new();
+$rest_cli->default_header(Authorization => 'Basic ' . encode_base64($np->opts->login.':'.$np->opts->pass) );
+
+
+my $all_plugin_info = $rest_cli->get($rest_point);
+
+$np->nagios_exit(CRITICAL, $all_plugin_info->status_line)  if ! $all_plugin_info->is_success;
+
+
+my $plugins_data = JSON::XS::decode_json( $all_plugin_info->decoded_content() );
+
+# We narrow down the list for the ones with a license (fortunately a boolean value)
+my @plugins_paid = grep{ $_->{'usesLicensing'} } @{ $plugins_data->{'plugins'} };
+
+
+my @now = localtime();
+
+foreach my $coplug (@plugins_paid) {
+
+    my $license_data = $rest_cli->get($rest_point.$coplug->{'key'}.'-key/license');
+
+    if( ! $license_data->is_success ) {
+        $np->add_message( WARNING,
+            'Unable to get detailed information for plugin ('.$coplug->{'name'}.'): '.$license_data->status_line."\n"
+        );
+        next;
+    }
+
+    my $license_info = JSON::XS::decode_json( $license_data->decoded_content() );
+
+    # Here is the list of fields that are returned by JIRA (alpha-sorted):
+    #    active | autoRenewal | contactEmail | creationDateString | crossgradeable | dataCenter | enterprise | evaluation
+    #           | licenseType | licenseTypeDescriptionKey | links | maintenanceExpired | maintenanceExpiryDate
+    #           | maintenanceExpiryDateString | maximumNumberOfUsers | nearlyExpired | organizationName | pluginKey
+    #           | purchasePastServerCutoffDate | rawLicense | renewable | subscription | supportEntitlementNumber
+    #           | typeI18nPlural | typeI18nSingular | upgradable | valid
+    #
+    # Here is the list of fields that are returned by Confluence (alpha-sorted):
+    #    active | autoRenewal | contactEmail | creationDateString | crossgradeable | dataCenter | enterprise | evaluation
+    #           | expiryDate | expiryDateString | licenseType | licenseTypeDescriptionKey | links | maintenanceExpired
+    #           | maintenanceExpiryDate | maintenanceExpiryDateString | nearlyExpred | organizationName | pluginKey
+    #           | rawLicense | renewable | subscription | supportEntitlementNumber | typeI18nPlural | typeI18nSingular
+    #           | upgradable | valid
+    #
+    # Here is the list of fields that are returned by Bitbucket (alpha-sorted):
+    #    active | autoRenewal | contactEmail | creationDateString | dataCenter | enterprise | evaluation
+    #           | licenseType | licenseTypeDescriptionKey | links | maintenanceExpiryDate | maintenanceExpiryDateString
+    #           | maximumNumberOfUsers | nearlyExpired | organizationName | pluginKey | rawLicense | renewable
+    #           | subscription | supportEntitlementNumber | typeI18nPlural | typeI18nSingular | upgradable | valid
+    #
+    # Careful that Atlassian uses an epoc value in miliseconds !
+    my @limit = localtime($license_info->{'maintenanceExpiryDate'} / 1000);
+    #
+    # Localtime returns information into pieces: ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)
+    #    Tricks: year is counted from 1900 and month is in the 0-11 range.
+    #
+    my $current_delta = Date::Calc::Delta_Days($now[5]+1900, $now[4]+1, $now[3],
+                                                $limit[5]+1900, $limit[4]+1, $limit[3]);
+
+
+    $np->add_message(
+        $np->check_threshold(
+            check => $current_delta,
+            warning => $np->opts->warning.":",
+            critical => $np->opts->critical.":",
+        ),
+        sprintf("Plugin %s has only %d days left on its license", $coplug->{'name'}, $current_delta),
+    )
+}
+
+my ($code, $message) = $np->check_messages();
+$np->nagios_exit($code, $message);

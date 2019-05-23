@@ -43,8 +43,6 @@ Requires the `YAML::Syck` perl module.
 Requires `LWP::Simple` and `File::Slurp` modules if loading URLs or files
 respective.
 
-Requires the `Yaml::Syck` perl module.
-
 #### Example to test for the status of the last puppet run:
 
 ```sh
@@ -91,7 +89,7 @@ Requires the `LWP::Simple` (`libwww-perl`) and `HTML::Parser` perl modules
 
 Check the health of a HTTP endpoint with HAProxy behaviour
 (200 -> OK, 500 -> CRITICAL, rest -> UNKNOWN)
-Requires the `LWP::Simple` perl module.
+Requires the `LWP::UserAgent` perl module.
 
 ### `check_apparmor`
 
@@ -116,6 +114,11 @@ This plugin is similar to the `check_imap_receive` plugin, but:
 * it is capable of loading options from files, to prevent leaking of
   credentials via the process table
 
+### `check_atlassian_plugins`
+
+Check all commercial plugins on the given instance and warn about the ones about to expire.
+Tested with Bitbucket, Confluence and Jira (other Atlassian product using UPM may work but are untested).
+Requires the `Date::Calc`, `JSON::XS` and `LWP::UserAgent` perl modules.
 
 ## License
 
