@@ -126,6 +126,18 @@ foreach my $coplug (@plugins_paid) {
 
     my $license_info = JSON::XS::decode_json( $license_data->decoded_content() );
 
+    # Sometimes, commercial plugins have some sub-plugins that are not Jira Core (so are part of the results)
+    #            yet do not report any license-related information (like license or expiration).
+    #
+    # i.e.: Integrity Check for Jira or Power Admin
+    #
+    if( ! $license_info->{'rawLicense'} ) {
+        $np->add_message( OK,
+            'Plugin ('.$coplug->{'name'}.') was part of the results from Jira but is not a commercial plugin (possibly a dependency of a commercial plugin).'."\n"
+        );
+        next;
+    }
+
     # Here is the list of fields that are returned by JIRA (alpha-sorted):
     #    active | autoRenewal | contactEmail | creationDateString | crossgradeable | dataCenter | enterprise | evaluation
     #           | licenseType | licenseTypeDescriptionKey | links | maintenanceExpired | maintenanceExpiryDate
