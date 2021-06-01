@@ -26,6 +26,6 @@ In order to successfully generate a package, you need:
 ```
  debuild -us -uc
 ```
-3. Use the *.tar.xz to also generate a *.zip archive
 4. Commit and tag the changes to the repo
-5. Push the commit & tag + upload all the artifacts of the release
+5. Declare a new release using the newly pushed tag & upload the DEB package
+6. Confirm that the ZIP and TAR.GZ are automatically added to the list of assets
