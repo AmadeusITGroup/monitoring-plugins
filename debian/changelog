@@ -1,3 +1,9 @@
+monitoring-plugins-amadeus (1.9.7) unstable; urgency=medium
+
+  * new check_atlassian_plugins probe for plugins expiration monitoring
+
+ -- Remi Schneider <remi.schneider@amadeus.com>  Tue, 01 Jun 2021 10:23:44 +0100
+
 monitoring-plugins-amadeus (1.9.6) unstable; urgency=medium
 
   * add check_imap_mailbox plugin
