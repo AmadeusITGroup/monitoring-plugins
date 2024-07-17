@@ -73,6 +73,12 @@ $np->add_arg(
 	default => 1,
 );
 
+$np->add_arg(
+	spec => 'warning|w!',
+	help => 'return warning if obsolete libraries/binaries are detected instead of critical',
+	default => 0,
+);
+
 $np->getopts;
 
 if (!($np->opts->kernel || $np->opts->libraries)) {
@@ -135,7 +141,10 @@ if ($np->opts->libraries) {
 		critical => undef,
 	);
 
-	$np->add_message(CRITICAL, "Outdated services: ".$data{'NEEDRESTART-SVC'}.".")  if($data{'NEEDRESTART-SVC'});
+	$np->add_message(
+		$np->opts->get('warning')?WARNING:CRITICAL,
+		"Outdated services: ".$data{'NEEDRESTART-SVC'}."."
+	)  if($data{'NEEDRESTART-SVC'});
 }
 
 my $ok_message = 'No obsolete kernels or libraries/binaries running';
